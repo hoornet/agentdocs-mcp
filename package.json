@@ -1,0 +1,47 @@
+{
+  "name": "agentdocs-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for AgentDocs (agentdocs.eu) — read, search, and write collaborative docs from any MCP client",
+  "license": "MIT",
+  "author": "Jure (https://agentdocs.eu)",
+  "homepage": "https://agentdocs.eu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoornet/agentdocs-mcp.git"
+  },
+  "bugs": "https://github.com/hoornet/agentdocs-mcp/issues",
+  "type": "module",
+  "bin": {
+    "agentdocs-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "watch": "tsc --watch"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "agentdocs",
+    "documentation",
+    "agents",
+    "claude",
+    "markdown"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "typescript": "^5.8.0"
+  }
+}
