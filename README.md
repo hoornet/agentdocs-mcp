@@ -50,13 +50,15 @@ claude mcp add agentdocs --env AGENTDOCS_TOKEN=<your-token> -- npx -y agentdocs-
 | `list_workspaces` | List accessible workspaces ¹ |
 | `list_spaces` | List spaces in a workspace ¹ |
 | `list_pages` | Page tree of a space (without content) |
-| `search_docs` | Full-text search across a workspace ¹ |
-| `get_page` | Read a page (full Markdown + version) |
+| `search_docs` | Full-text (keyword) search across a workspace ¹ |
+| `semantic_search` | Natural-language search ranked by meaning — Pro workspaces ¹ |
+| `get_page` | Read a page (full Markdown + version); optional `include_comments` |
 | `create_page` | Create a Markdown page (nestable) |
 | `update_page` | Update title/content, with optional optimistic version check |
 | `append_to_page` | Append Markdown — ideal for logs and session reports |
+| `import_markdown` | Import a folder of Markdown files; paths become the page hierarchy |
 | `delete_page` | Delete a page (cascades to children) |
-| `bulk_create_pages` | Create up to 500 pages atomically |
+| `bulk_create_pages` | Create up to 500 pages atomically with explicit structure |
 | `share_page` | Create a public magic link (web + raw-Markdown URLs) |
 
 ¹ Hidden when running with a space-scoped token.
@@ -83,7 +85,7 @@ npm run build
 # End-to-end smoke tests (hit a real AgentDocs instance with YOUR data):
 SMOKE_TESTBED_SPACE="workspace-slug/scratch-space-slug" \
 SMOKE_KNOWN_PAGE="workspace-slug/space-slug/page-slug" \
-node test/smoke.mjs                       # account token: all 12 tools
+node test/smoke.mjs                       # account token: all tools
 
 AGENTDOCS_TOKEN=<space-token> node test/smoke-space-token.mjs   # space-token mode
 ```

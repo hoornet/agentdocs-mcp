@@ -78,7 +78,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
       {
         title: "Search docs",
         description:
-          "Full-text search across all pages in a workspace. Matches in the returned content_preview are delimited with << >> markers.",
+          "Full-text (keyword) search across all pages in a workspace. Matches in the returned content_preview are delimited with << >> markers. For natural-language questions, prefer semantic_search.",
         inputSchema: {
           workspace: z.string().describe("Workspace UUID or workspace slug"),
           query: z.string().min(1).describe("Search terms"),
@@ -87,6 +87,27 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
       safe(async ({ workspace, query }: { workspace: string; query: string }) => {
         const workspaceId = await resolver.workspaceId(workspace);
         const result = await client.request("GET", `/api/workspaces/${workspaceId}/search`, undefined, { q: query });
+        return textResult(result);
+      })
+    );
+
+    server.registerTool(
+      "semantic_search",
+      {
+        title: "Semantic search",
+        description:
+          "Search a workspace by meaning, not keywords — ask a natural-language question (e.g. \"how do we handle billing retries?\") and get the most relevant pages ranked by similarity. Pages are embedded automatically after each save. Requires a Pro workspace; the response 'mode' is \"semantic\" when active, or \"fulltext_fallback\" if semantic search is not configured on the instance (results are still returned).",
+        inputSchema: {
+          workspace: z.string().describe("Workspace UUID or workspace slug"),
+          query: z.string().min(1).max(1000).describe("A natural-language question or description (max 1000 chars)"),
+        },
+      },
+      safe(async ({ workspace, query }: { workspace: string; query: string }) => {
+        const workspaceId = await resolver.workspaceId(workspace);
+        const result = await client.request("GET", `/api/workspaces/${workspaceId}/search`, undefined, {
+          q: query,
+          mode: "semantic",
+        });
         return textResult(result);
       })
     );
@@ -118,14 +139,24 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
     "get_page",
     {
       title: "Get page",
-      description: "Read a page including its full Markdown content and current version number.",
+      description:
+        "Read a page including its full Markdown content and current version number. Set include_comments to also return the page's comment thread in the same call.",
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
+        include_comments: z
+          .boolean()
+          .optional()
+          .describe("When true, also return the page's comments (threaded) alongside the page."),
       },
     },
-    safe(async ({ page }: { page: string }) => {
+    safe(async ({ page, include_comments }: { page: string; include_comments?: boolean }) => {
       const pageId = await resolver.pageId(page);
-      const result = await client.request("GET", `/api/pages/${pageId}`);
+      const result = await client.request(
+        "GET",
+        `/api/pages/${pageId}`,
+        undefined,
+        include_comments ? { include: "comments" } : undefined
+      );
       return textResult(result);
     })
   );

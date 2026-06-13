@@ -43,10 +43,10 @@ const { tools } = await client.listTools();
 const names = tools.map((t) => t.name).sort();
 const expected = [
   "append_to_page", "bulk_create_pages", "create_page", "delete_page", "get_page",
-  "list_pages", "list_spaces", "list_workspaces", "search_docs", "share_page",
-  "update_page", "whoami",
+  "import_markdown", "list_pages", "list_spaces", "list_workspaces", "search_docs",
+  "semantic_search", "share_page", "update_page", "whoami",
 ].sort();
-check("tools/list exposes all 12 tools", JSON.stringify(names) === JSON.stringify(expected), names.join(","));
+check("tools/list exposes all 14 tools", JSON.stringify(names) === JSON.stringify(expected), names.join(","));
 
 // 2. whoami
 const me = json(await call("whoami"));
@@ -67,6 +67,19 @@ const knownWorkspaceSlug = KNOWN_PAGE.split("/")[0];
 const knownPageSlug = KNOWN_PAGE.split("/")[2];
 const search = json(await call("search_docs", { workspace: knownWorkspaceSlug, query: known.page.title }));
 check("search_docs finds the known page", search.results?.some((r) => r.slug === knownPageSlug));
+
+// 5b. semantic_search — works on Pro (mode "semantic") or degrades cleanly
+// (mode "fulltext_fallback"); a 403 means the workspace is Free, which is also
+// a valid, well-formed outcome. Any of these means the tool is wired correctly.
+const semantic = await call("semantic_search", { workspace: knownWorkspaceSlug, query: known.page.title });
+const semOk = semantic.isError
+  ? text(semantic).toLowerCase().includes("pro")
+  : ["semantic", "fulltext_fallback", "fulltext"].includes(json(semantic).mode);
+check("semantic_search returns a recognized mode (or Pro-gate)", semOk, semantic.isError ? "403/Pro" : json(semantic).mode);
+
+// 5c. get_page include_comments — page plus a comments array in one call
+const withComments = json(await call("get_page", { page: KNOWN_PAGE, include_comments: true }));
+check("get_page include_comments attaches comments", Array.isArray(withComments.comments));
 
 // 6. create_page in testbed
 const created = json(await call("create_page", {
@@ -107,8 +120,19 @@ const bulk = json(await call("bulk_create_pages", {
 }));
 check("bulk_create_pages", bulk.created === 2);
 
-// 12. delete_page (cleanup: smoke page + bulk pages)
-for (const id of [pageId, ...bulk.pages.map((p) => p.id)]) {
+// 11b. import_markdown — folder paths become the page hierarchy
+const imported = json(await call("import_markdown", {
+  space: TESTBED_SPACE,
+  files: [
+    { path: "mcp-import-smoke/index.md", content: "# Import Smoke Folder\nfolder page" },
+    { path: "mcp-import-smoke/child.md", content: "# Import Child\nnested page" },
+  ],
+}));
+check("import_markdown builds a folder + child", imported.created === 2);
+const importedFolderId = imported.pages.find((p) => p.title === "Import Smoke Folder")?.id;
+
+// 12. delete_page (cleanup: smoke page + bulk pages + import folder (cascades to child))
+for (const id of [pageId, ...bulk.pages.map((p) => p.id), importedFolderId].filter(Boolean)) {
   await call("delete_page", { page: id });
 }
 const afterDelete = await call("get_page", { page: pageId });

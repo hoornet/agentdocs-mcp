@@ -139,11 +139,48 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
   );
 
   server.registerTool(
+    "import_markdown",
+    {
+      title: "Import a markdown folder",
+      description:
+        "Import a folder of Markdown files and let the folder structure become the page hierarchy. Each file is { path, content } where path is a relative file path like \"guides/setup.md\". Folders become parent pages; an index.md or README.md inside a folder supplies that folder page's content; titles come from the first # H1, falling back to the file name. Ideal for an Obsidian vault, a Notion markdown export, or a repo's docs/ folder. Up to 500 files. Use bulk_create_pages instead when you want to specify the page tree explicitly. With a space-scoped token, omit \"space\" to use the token's space.",
+      inputSchema: {
+        space: z
+          .string()
+          .optional()
+          .describe('Space UUID or "workspaceSlug/spaceSlug" path. Optional for space-scoped tokens.'),
+        files: z
+          .array(
+            z.object({
+              path: z.string().min(1).describe('Relative file path, e.g. "guides/setup.md" (only .md / .markdown)'),
+              content: z.string().describe("Markdown file contents"),
+            })
+          )
+          .min(1)
+          .max(500)
+          .describe("The markdown files to import"),
+      },
+    },
+    safe(async ({ space, files }: { space?: string; files: Array<{ path: string; content: string }> }) => {
+      const spaceId = await resolver.spaceId(space);
+      const result = await client.request<{ created: number; pages: Page[] }>(
+        "POST",
+        `/api/spaces/${spaceId}/import/markdown`,
+        { files }
+      );
+      return textResult({
+        created: result.created,
+        pages: (result.pages ?? []).map((p) => ({ id: p.id, title: p.title, slug: p.slug })),
+      });
+    })
+  );
+
+  server.registerTool(
     "bulk_create_pages",
     {
       title: "Bulk create pages",
       description:
-        "Create up to 500 pages in one atomic call (all succeed or all fail). Ideal for importing a folder of Markdown files. With a space-scoped token, omit \"space\" to use the token's space.",
+        "Create up to 500 pages in one atomic call (all succeed or all fail) with an explicitly specified structure (titles, slugs, parent_page_id). To import a folder of Markdown files and derive the hierarchy from file paths, use import_markdown instead. With a space-scoped token, omit \"space\" to use the token's space.",
       inputSchema: {
         space: z
           .string()
