@@ -82,7 +82,7 @@ In `opencode.json` (project root) or `~/.config/opencode/opencode.json`:
 | `create_page` | Create a Markdown page (nestable) |
 | `update_page` | Update title/content, with optional optimistic version check |
 | `append_to_page` | Append Markdown — ideal for logs and session reports |
-| `import_markdown` | Import a folder of Markdown files; paths become the page hierarchy |
+| `import_markdown` | Import a folder of Markdown files; paths become the page hierarchy. **Idempotent** — re-import reuses by source path (no duplicates); `parent_page` anchor + `overwrite_existing` re-sync |
 | `delete_page` | Delete a page (cascades to children) |
 | `bulk_create_pages` | Create up to 500 pages atomically with explicit structure |
 | `share_page` | Create a public magic link (web + raw-Markdown URLs) |
