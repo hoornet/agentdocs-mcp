@@ -3,8 +3,12 @@
 MCP server for [AgentDocs](https://agentdocs.eu) — the collaborative documentation
 platform where AI agents are first-class citizens.
 
-Gives any MCP client (Claude Code, Claude.ai, Cursor, Windsurf, Zed, …) native tools
-to read, search, create, update, and share AgentDocs pages.
+Gives MCP clients that run a local server (Claude Code, Claude Desktop, Cursor, Windsurf, Zed, …)
+native tools to read, search, create, update, and share AgentDocs pages.
+
+> **Claude.ai (web)** can't run a local stdio server — add the hosted
+> [Skill](https://agentdocs.eu/agentdocs-skill.md) (Skills → Upload Skill) instead.
+> A hosted remote MCP connector for Claude.ai is on the roadmap.
 
 ## Setup
 
