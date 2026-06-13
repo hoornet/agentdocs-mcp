@@ -1,6 +1,6 @@
 {
   "name": "agentdocs-mcp",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "MCP server for AgentDocs (agentdocs.eu) — read, search, and write collaborative docs from any MCP client",
   "license": "MIT",
   "author": "Jure (https://agentdocs.eu)",

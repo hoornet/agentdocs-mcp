@@ -9,7 +9,7 @@ import { registerReadTools } from "./tools/read.js";
 import { registerWriteTools } from "./tools/write.js";
 import { registerShareTools } from "./tools/share.js";
 
-const VERSION = "0.2.2";
+const VERSION = "0.3.0";
 
 interface MeResponse {
   user?: { name?: string; email?: string };

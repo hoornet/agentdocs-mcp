@@ -121,15 +121,18 @@ const bulk = json(await call("bulk_create_pages", {
 check("bulk_create_pages", bulk.created === 2);
 
 // 11b. import_markdown — folder paths become the page hierarchy
-const imported = json(await call("import_markdown", {
-  space: TESTBED_SPACE,
-  files: [
-    { path: "mcp-import-smoke/index.md", content: "# Import Smoke Folder\nfolder page" },
-    { path: "mcp-import-smoke/child.md", content: "# Import Child\nnested page" },
-  ],
-}));
+const importFiles = [
+  { path: "mcp-import-smoke/index.md", content: "# Import Smoke Folder\nfolder page" },
+  { path: "mcp-import-smoke/child.md", content: "# Import Child\nnested page" },
+];
+const imported = json(await call("import_markdown", { space: TESTBED_SPACE, files: importFiles }));
 check("import_markdown builds a folder + child", imported.created === 2);
 const importedFolderId = imported.pages.find((p) => p.title === "Import Smoke Folder")?.id;
+
+// 11c. import_markdown is idempotent — re-import reuses, no duplicates
+const reimported = json(await call("import_markdown", { space: TESTBED_SPACE, files: importFiles }));
+check("import_markdown re-import is idempotent (reused, 0 created)",
+  reimported.created === 0 && reimported.reused === 2, `created=${reimported.created} reused=${reimported.reused}`);
 
 // 12. delete_page (cleanup: smoke page + bulk pages + import folder (cascades to child))
 for (const id of [pageId, ...bulk.pages.map((p) => p.id), importedFolderId].filter(Boolean)) {

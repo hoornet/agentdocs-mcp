@@ -4,6 +4,17 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.3.0 — 2026-06-14
+
+### Added
+- `import_markdown` is now **idempotent** and **anchorable**:
+  - Re-running an import (or chunking a large vault across several calls) reuses
+    existing pages instead of creating `-2` duplicates — matched by source path.
+    The response reports `created` / `reused` / `updated` counts.
+  - `parent_page` (UUID or slug path) nests the whole import under an existing page.
+  - `overwrite_existing` (default false) re-syncs content of pages that already
+    exist; off by default so re-import never clobbers in-app edits.
+
 ## 0.2.2 — 2026-06-13
 
 ### Added

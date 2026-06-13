@@ -143,7 +143,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Import a markdown folder",
       description:
-        "Import a folder of Markdown files and let the folder structure become the page hierarchy. Each file is { path, content } where path is a relative file path like \"guides/setup.md\". Folders become parent pages; an index.md or README.md inside a folder supplies that folder page's content; titles come from the first # H1, falling back to the file name. Ideal for an Obsidian vault, a Notion markdown export, or a repo's docs/ folder. Up to 500 files. Use bulk_create_pages instead when you want to specify the page tree explicitly. With a space-scoped token, omit \"space\" to use the token's space.",
+        "Import a folder of Markdown files and let the folder structure become the page hierarchy. Each file is { path, content } where path is a relative file path like \"guides/setup.md\". Folders become parent pages; an index.md or README.md inside a folder supplies that folder page's content; titles come from the first # H1, falling back to the file name. Ideal for an Obsidian vault, a Notion markdown export, or a repo's docs/ folder. Up to 500 files per call. IDEMPOTENT: pages are matched by source path, so re-running an import — or chunking a large vault across several calls — reuses existing pages instead of creating duplicates (response reports created/reused/updated counts). By default existing pages keep their content; set overwrite_existing to re-sync content from the files. Use parent_page to nest the whole import under an existing page. Use bulk_create_pages instead when you want to specify the page tree explicitly. With a space-scoped token, omit \"space\" to use the token's space.",
       inputSchema: {
         space: z
           .string()
@@ -159,17 +159,37 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
           .min(1)
           .max(500)
           .describe("The markdown files to import"),
+        parent_page: z
+          .string()
+          .optional()
+          .describe('Optional existing page to nest the import under (UUID or "workspaceSlug/spaceSlug/pageSlug" path). Defaults to the space root.'),
+        overwrite_existing: z
+          .boolean()
+          .optional()
+          .describe("When true, re-importing updates the content of pages that already exist (re-sync). Default false: existing pages are left untouched."),
       },
     },
-    safe(async ({ space, files }: { space?: string; files: Array<{ path: string; content: string }> }) => {
+    safe(async ({ space, files, parent_page, overwrite_existing }: {
+      space?: string;
+      files: Array<{ path: string; content: string }>;
+      parent_page?: string;
+      overwrite_existing?: boolean;
+    }) => {
       const spaceId = await resolver.spaceId(space);
-      const result = await client.request<{ created: number; pages: Page[] }>(
+      const parentId = parent_page ? await resolver.pageId(parent_page) : undefined;
+      const result = await client.request<{ created: number; reused: number; updated: number; pages: Page[] }>(
         "POST",
         `/api/spaces/${spaceId}/import/markdown`,
-        { files }
+        {
+          files,
+          ...(parentId ? { parent_page: parentId } : {}),
+          ...(overwrite_existing ? { overwrite_existing: true } : {}),
+        }
       );
       return textResult({
         created: result.created,
+        reused: result.reused,
+        updated: result.updated,
         pages: (result.pages ?? []).map((p) => ({ id: p.id, title: p.title, slug: p.slug })),
       });
     })
