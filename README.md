@@ -10,6 +10,11 @@ native tools to read, search, create, update, and share AgentDocs pages.
 > [Skill](https://agentdocs.eu/agentdocs-skill.md) (Skills → Upload Skill) instead.
 > A hosted remote MCP connector for Claude.ai is on the roadmap.
 
+<!-- TODO: when the remote HTTP/SSE connector ships and we submit to the official
+     MCP registry (modelcontextprotocol/registry), update the Claude.ai note above
+     from "on the roadmap" to the connector URL + registry link. -->
+
+
 ## Setup
 
 You need an AgentDocs API token:
@@ -34,6 +39,23 @@ claude mcp add agentdocs --env AGENTDOCS_TOKEN=<your-token> -- npx -y agentdocs-
       "command": "npx",
       "args": ["-y", "agentdocs-mcp"],
       "env": { "AGENTDOCS_TOKEN": "<your-token>" }
+    }
+  }
+}
+```
+
+### Opencode
+
+In `opencode.json` (project root) or `~/.config/opencode/opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "agentdocs": {
+      "type": "local",
+      "command": ["npx", "-y", "agentdocs-mcp"],
+      "environment": { "AGENTDOCS_TOKEN": "<your-token>" }
     }
   }
 }

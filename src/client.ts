@@ -34,7 +34,10 @@ function friendlyMessage(status: number, body: Record<string, unknown>, baseUrl:
   if (status === 403 && typeof body.upgrade_url === "string") {
     const limit = body.limit !== undefined ? ` (${body.current}/${body.limit} on the ${body.tier} tier)` : "";
     const upgradeUrl = body.upgrade_url.startsWith("http") ? body.upgrade_url : `${baseUrl}${body.upgrade_url}`;
-    return `${serverMessage || "Plan limit reached"}${limit}. Upgrade: ${upgradeUrl}`;
+    // Strip a trailing period so feature-gate messages like "Semantic search
+    // requires a Pro subscription." don't render as ".. Upgrade:".
+    const base = (serverMessage || "Plan limit reached").replace(/\.\s*$/, "");
+    return `${base}${limit}. Upgrade: ${upgradeUrl}`;
   }
 
   if (status === 403) {

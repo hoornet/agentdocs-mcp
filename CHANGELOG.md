@@ -4,6 +4,16 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.2.2 — 2026-06-13
+
+### Added
+- README: Opencode setup (`opencode.json` `mcp` block) alongside Claude Code / Cursor / Windsurf.
+
+### Fixed
+- Feature-gate 403 messages (e.g. `semantic_search` on a Free workspace) no longer
+  render a double period before "Upgrade:" — the message now reads cleanly, e.g.
+  `Semantic search requires a Pro subscription. Upgrade: https://agentdocs.eu/settings/billing`.
+
 ## 0.2.1 — 2026-06-13
 
 ### Docs
