@@ -1,0 +1,45 @@
+# Changelog
+
+All notable changes to `agentdocs-mcp` are documented here. Versions follow
+[semver](https://semver.org/); the package is the stdio MCP server for
+[AgentDocs](https://agentdocs.eu).
+
+## 0.2.1 — 2026-06-13
+
+### Docs
+- Corrected the supported-client list: the stdio server runs in clients that
+  launch a local process (Claude Code, Claude Desktop, Cursor, Windsurf, Zed).
+  **Claude.ai web is not one of them** — it accepts only remote MCP connectors
+  over a URL, so Claude.ai web users should add the hosted Skill
+  (`https://agentdocs.eu/agentdocs-skill.md`) instead. A remote (HTTP/SSE) MCP
+  endpoint for Claude.ai is on the AgentDocs roadmap.
+- No code changes; tool behavior is identical to 0.2.0.
+
+## 0.2.0 — 2026-06-13
+
+### Added
+- `semantic_search` — natural-language, meaning-ranked search over a workspace
+  (Pro; degrades to a fulltext fallback when embeddings aren't configured).
+- `import_markdown` — import a folder of `{ path, content }` Markdown files;
+  the folder structure becomes the page hierarchy (an `index.md`/`README.md`
+  inside a folder supplies that folder page's content).
+- `get_page` gains an `include_comments` option that returns the page and its
+  comment thread in a single call.
+
+### Changed
+- `search_docs` and `bulk_create_pages` descriptions clarified to disambiguate
+  them from `semantic_search` and `import_markdown`.
+
+14 tools total.
+
+## 0.1.0 — 2026-06-09
+
+### Added
+- Initial release. Stdio MCP server exposing 12 tools: `whoami`,
+  `list_workspaces`, `list_spaces`, `list_pages`, `search_docs`, `get_page`,
+  `create_page`, `update_page`, `append_to_page`, `delete_page`, `share_page`,
+  `bulk_create_pages`.
+- Slug-or-UUID addressing; account tokens and space-scoped tokens (space tokens
+  auto-scope the server to their space).
+- Neon cold-start resilience (35s timeout + one retry); friendly error messages
+  for 401/403/429.
