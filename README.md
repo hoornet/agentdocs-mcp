@@ -68,6 +68,19 @@ In `opencode.json` (project root) or `~/.config/opencode/opencode.json`:
 | `AGENTDOCS_TOKEN` | contents of `~/.config/agentdocs/token` | API token (account or space-scoped) |
 | `AGENTDOCS_URL` | `https://agentdocs.eu` | Point at a self-hosted AgentDocs instance |
 
+### Updating
+
+The setup commands above are unpinned (`npx -y agentdocs-mcp`), so they always
+resolve the latest published version. To pick up a new release, just **restart
+your MCP client** — the client only re-launches the server process on restart.
+The server prints its version on startup (stderr): `agentdocs-mcp vX.Y.Z: connected …`.
+
+If npx serves a stale cached copy, force a refresh:
+
+```bash
+npx -y agentdocs-mcp@latest    # or: npm cache clean --force
+```
+
 ## Tools
 
 | Tool | Description |
