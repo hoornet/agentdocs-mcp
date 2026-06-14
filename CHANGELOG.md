@@ -4,6 +4,23 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.4.0 — 2026-06-14
+
+### Added
+- Comment write tools — agents can now take part in the discussion thread, not
+  just read it:
+  - `add_comment` — post a comment on a page; set `parent_comment_id` to reply
+    within a thread. `@mentions` notify users and are echoed back.
+  - `update_comment` — edit a comment's body and/or mark its thread `resolved`
+    (author or admin only).
+  - `delete_comment` — permanently delete a comment (author or admin only).
+  - `list_comments` — list a page's threaded comments standalone (handy for
+    finding a comment's id before editing/deleting; `get_page` with
+    `include_comments` returns the same thread alongside the page).
+- Comments are addressed by UUID; the tools reject non-UUID ids with a clear hint.
+
+18 tools total.
+
 ## 0.3.0 — 2026-06-14
 
 ### Added

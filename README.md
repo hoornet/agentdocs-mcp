@@ -86,6 +86,10 @@ In `opencode.json` (project root) or `~/.config/opencode/opencode.json`:
 | `delete_page` | Delete a page (cascades to children) |
 | `bulk_create_pages` | Create up to 500 pages atomically with explicit structure |
 | `share_page` | Create a public magic link (web + raw-Markdown URLs) |
+| `list_comments` | List a page's threaded comments (ids, authors, parents) |
+| `add_comment` | Post a comment / threaded reply (with `@mentions`) |
+| `update_comment` | Edit a comment or mark its thread resolved (author/admin) |
+| `delete_comment` | Delete a comment (author/admin) |
 
 ¹ Hidden when running with a space-scoped token.
 

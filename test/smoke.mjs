@@ -42,11 +42,12 @@ const call = (name, args = {}) => client.callTool({ name, arguments: args });
 const { tools } = await client.listTools();
 const names = tools.map((t) => t.name).sort();
 const expected = [
-  "append_to_page", "bulk_create_pages", "create_page", "delete_page", "get_page",
-  "import_markdown", "list_pages", "list_spaces", "list_workspaces", "search_docs",
-  "semantic_search", "share_page", "update_page", "whoami",
+  "add_comment", "append_to_page", "bulk_create_pages", "create_page", "delete_comment",
+  "delete_page", "get_page", "import_markdown", "list_comments", "list_pages", "list_spaces",
+  "list_workspaces", "search_docs", "semantic_search", "share_page", "update_comment",
+  "update_page", "whoami",
 ].sort();
-check("tools/list exposes all 14 tools", JSON.stringify(names) === JSON.stringify(expected), names.join(","));
+check("tools/list exposes all 18 tools", JSON.stringify(names) === JSON.stringify(expected), names.join(","));
 
 // 2. whoami
 const me = json(await call("whoami"));
@@ -101,6 +102,35 @@ check("update_page stale version is rejected", conflict.isError === true && text
 // 9. update_page with correct expected_version
 const updated = json(await call("update_page", { page: pageId, title: "MCP smoke test (updated)", expected_version: 2 }));
 check("update_page with correct version", updated.page?.version === 3 && updated.page?.title?.includes("updated"));
+
+// 9b. comment lifecycle: add → list → reply (threaded) → update/resolve → delete
+const comment = json(await call("add_comment", { page: pageId, content: "Top-level smoke comment" }));
+const commentId = comment.comment?.id;
+check("add_comment creates a comment", Boolean(commentId), commentId);
+
+const reply = json(await call("add_comment", {
+  page: pageId,
+  content: "Threaded reply",
+  parent_comment_id: commentId,
+}));
+check("add_comment threads under a parent", reply.comment?.parent_comment_id === commentId);
+
+const listed = json(await call("list_comments", { page: pageId }));
+check("list_comments returns the thread", Array.isArray(listed.comments) && listed.comments.length >= 1);
+
+const editedComment = json(await call("update_comment", {
+  comment: commentId,
+  content: "Edited smoke comment",
+  resolved: true,
+}));
+check("update_comment edits + resolves",
+  editedComment.comment?.content === "Edited smoke comment" && editedComment.comment?.resolved === true);
+
+const badComment = await call("update_comment", { comment: "not-a-uuid" });
+check("update_comment rejects a non-UUID comment id", badComment.isError === true);
+
+const delComment = await call("delete_comment", { comment: commentId });
+check("delete_comment removes the comment", delComment.isError !== true);
 
 // 10. share_page → absolute raw URL fetchable without auth
 const share = json(await call("share_page", { page: pageId, expires_in_days: 1 }));

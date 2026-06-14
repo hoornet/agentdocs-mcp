@@ -8,8 +8,9 @@ import type { CredentialInfo, ToolContext } from "./context.js";
 import { registerReadTools } from "./tools/read.js";
 import { registerWriteTools } from "./tools/write.js";
 import { registerShareTools } from "./tools/share.js";
+import { registerCommentTools } from "./tools/comments.js";
 
-const VERSION = "0.3.0";
+const VERSION = "0.4.0";
 
 interface MeResponse {
   user?: { name?: string; email?: string };
@@ -65,6 +66,7 @@ async function main(): Promise<void> {
   registerReadTools(server, ctx);
   registerWriteTools(server, ctx);
   registerShareTools(server, ctx);
+  registerCommentTools(server, ctx);
 
   await server.connect(new StdioServerTransport());
   console.error("agentdocs-mcp: ready (stdio)");
