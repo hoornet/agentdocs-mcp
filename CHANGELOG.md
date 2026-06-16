@@ -4,6 +4,15 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.5.0 — 2026-06-16
+
+### Added
+- `get_page` gains an `include_children` option — returns a page's immediate child
+  pages (id, title, slug; no content) alongside the page. Useful for "folder" pages
+  whose own content is empty but which organise sub-pages: an agent reading one no
+  longer hits a dead end with no hint that children exist. Composes with
+  `include_comments` (both can be requested in one call).
+
 ## 0.4.0 — 2026-06-14
 
 ### Added

@@ -91,7 +91,7 @@ npx -y agentdocs-mcp@latest    # or: npm cache clean --force
 | `list_pages` | Page tree of a space (without content) |
 | `search_docs` | Full-text (keyword) search across a workspace ¹ |
 | `semantic_search` | Natural-language search ranked by meaning — Pro workspaces ¹ |
-| `get_page` | Read a page (full Markdown + version); optional `include_comments` |
+| `get_page` | Read a page (full Markdown + version); optional `include_comments` / `include_children` |
 | `create_page` | Create a Markdown page (nestable) |
 | `update_page` | Update title/content, with optional optimistic version check |
 | `append_to_page` | Append Markdown — ideal for logs and session reports |

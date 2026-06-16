@@ -164,6 +164,14 @@ const reimported = json(await call("import_markdown", { space: TESTBED_SPACE, fi
 check("import_markdown re-import is idempotent (reused, 0 created)",
   reimported.created === 0 && reimported.reused === 2, `created=${reimported.created} reused=${reimported.reused}`);
 
+// 11d. get_page include_children — the imported folder page lists its child
+const folderWithKids = json(await call("get_page", { page: importedFolderId, include_children: true }));
+check("get_page include_children lists child pages",
+  Array.isArray(folderWithKids.children) && folderWithKids.children.some((c) => c.title === "Import Child"),
+  `${folderWithKids.children?.length ?? 0} children`);
+check("include_children omits child content (light payload)",
+  (folderWithKids.children ?? []).every((c) => c.content === undefined));
+
 // 12. delete_page (cleanup: smoke page + bulk pages + import folder (cascades to child))
 for (const id of [pageId, ...bulk.pages.map((p) => p.id), importedFolderId].filter(Boolean)) {
   await call("delete_page", { page: id });

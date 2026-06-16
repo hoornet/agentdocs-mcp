@@ -140,22 +140,33 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Get page",
       description:
-        "Read a page including its full Markdown content and current version number. Set include_comments to also return the page's comment thread in the same call.",
+        "Read a page including its full Markdown content and current version number. Set include_comments to also return the page's comment thread, and/or include_children to return the page's child pages (titles + slugs, no content) — useful for 'folder' pages whose own content is empty but which organise sub-pages.",
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
         include_comments: z
           .boolean()
           .optional()
           .describe("When true, also return the page's comments (threaded) alongside the page."),
+        include_children: z
+          .boolean()
+          .optional()
+          .describe("When true, also return the page's immediate child pages (id, title, slug — no content)."),
       },
     },
-    safe(async ({ page, include_comments }: { page: string; include_comments?: boolean }) => {
+    safe(async ({ page, include_comments, include_children }: {
+      page: string;
+      include_comments?: boolean;
+      include_children?: boolean;
+    }) => {
       const pageId = await resolver.pageId(page);
+      const include = [include_comments && "comments", include_children && "children"]
+        .filter(Boolean)
+        .join(",");
       const result = await client.request(
         "GET",
         `/api/pages/${pageId}`,
         undefined,
-        include_comments ? { include: "comments" } : undefined
+        include ? { include } : undefined
       );
       return textResult(result);
     })
