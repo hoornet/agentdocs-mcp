@@ -4,6 +4,15 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.5.1 — 2026-06-18
+
+### Changed
+- Upgraded `zod` 3 → 4 (dependency). No behavioural change — the MCP SDK
+  (`@modelcontextprotocol/sdk` ≥1.29) supports `zod ^3.25 || ^4.0`, and the
+  tool input schemas use only basic builders (`z.string/object/boolean` +
+  `.optional/.min/.max/.describe/.array`) whose signatures are unchanged in
+  Zod 4. Verified: `tsc` clean + full prod smoke suite (27 checks) green.
+
 ## 0.5.0 — 2026-06-16
 
 ### Added
