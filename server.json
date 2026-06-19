@@ -1,0 +1,37 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.hoornet/agentdocs-mcp",
+  "description": "Read, search, create, update, comment on and share AgentDocs (agentdocs.eu) documentation — 18 tools, slug-or-UUID addressing, account or space-scoped tokens.",
+  "version": "0.5.2",
+  "repository": {
+    "url": "https://github.com/hoornet/agentdocs-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "agentdocs-mcp",
+      "version": "0.5.2",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "AGENTDOCS_TOKEN",
+          "description": "AgentDocs API token (account or space-scoped). Profile → Regenerate API Token, or Space settings → Tokens.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "AGENTDOCS_URL",
+          "description": "Base URL of the AgentDocs instance. Set this only for a self-hosted instance.",
+          "isRequired": false,
+          "isSecret": false,
+          "default": "https://agentdocs.eu"
+        }
+      ]
+    }
+  ]
+}

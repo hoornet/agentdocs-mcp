@@ -4,6 +4,13 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.5.2 — 2026-06-19
+
+### Added
+- `server.json` + `mcpName` in package.json so the server can be listed in the
+  official MCP registry (`io.github.hoornet/agentdocs-mcp`). No functional change
+  to the server itself.
+
 ## 0.5.1 — 2026-06-18
 
 ### Changed

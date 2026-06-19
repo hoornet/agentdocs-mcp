@@ -10,7 +10,7 @@ import { registerWriteTools } from "./tools/write.js";
 import { registerShareTools } from "./tools/share.js";
 import { registerCommentTools } from "./tools/comments.js";
 
-const VERSION = "0.5.1";
+const VERSION = "0.5.2";
 
 interface MeResponse {
   user?: { name?: string; email?: string };
