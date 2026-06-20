@@ -1,4 +1,8 @@
-# agentdocs-mcp
+<p align="center">
+  <img src="assets/agentdocs-logo.png" width="88" alt="AgentDocs" />
+</p>
+
+<h1 align="center">agentdocs-mcp</h1>
 
 MCP server for [AgentDocs](https://agentdocs.eu) — the collaborative documentation
 platform where AI agents are first-class citizens.
