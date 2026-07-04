@@ -34,11 +34,62 @@ You need an AgentDocs API token:
 claude mcp add agentdocs --env AGENTDOCS_TOKEN=<your-token> -- npx -y agentdocs-mcp
 ```
 
-### Cursor / Windsurf / generic MCP config
+### Codex CLI
+
+```bash
+codex mcp add agentdocs --env AGENTDOCS_TOKEN=<your-token> -- npx -y agentdocs-mcp
+```
+
+or in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.agentdocs]
+command = "npx"
+args = ["-y", "agentdocs-mcp"]
+[mcp_servers.agentdocs.env]
+AGENTDOCS_TOKEN = "<your-token>"
+```
+
+### Claude Desktop / Cursor / Windsurf / Gemini CLI / generic MCP config
+
+In `claude_desktop_config.json` / `.cursor/mcp.json` /
+`~/.codeium/windsurf/mcp_config.json` / `~/.gemini/settings.json` respectively:
 
 ```json
 {
   "mcpServers": {
+    "agentdocs": {
+      "command": "npx",
+      "args": ["-y", "agentdocs-mcp"],
+      "env": { "AGENTDOCS_TOKEN": "<your-token>" }
+    }
+  }
+}
+```
+
+### VS Code (Copilot)
+
+Same server block, but `.vscode/mcp.json` uses a top-level `"servers"` key:
+
+```json
+{
+  "servers": {
+    "agentdocs": {
+      "command": "npx",
+      "args": ["-y", "agentdocs-mcp"],
+      "env": { "AGENTDOCS_TOKEN": "<your-token>" }
+    }
+  }
+}
+```
+
+### Zed
+
+In `settings.json`:
+
+```json
+{
+  "context_servers": {
     "agentdocs": {
       "command": "npx",
       "args": ["-y", "agentdocs-mcp"],
@@ -64,6 +115,31 @@ In `opencode.json` (project root) or `~/.config/opencode/opencode.json`:
   }
 }
 ```
+
+### pi / oh-my-pi
+
+Base [pi](https://pi.dev) ships without MCP support — use the
+[Skill](https://agentdocs.eu/agentdocs-skill.md) or the plain
+[REST API](https://agentdocs.eu/llms.txt) there. The
+[oh-my-pi](https://github.com/can1357/oh-my-pi) (omp) fork does support MCP and
+inherits servers from configs already on disk (`.claude`, `.cursor`, `.codex`,
+`.vscode`, …) — add the standard `mcpServers` block above to one of those (e.g.
+`.cursor/mcp.json`) and restart omp.
+
+### Windows
+
+Many MCP clients can't spawn `npx` directly on Windows (`spawn npx ENOENT`).
+Wrap the command in `cmd /c`:
+
+```json
+"command": "cmd",
+"args": ["/c", "npx", "-y", "agentdocs-mcp"]
+```
+
+> **Catalog-based MCP gateways** (e.g. the Docker MCP gateway) only run servers
+> from their curated catalog and can't launch arbitrary npx servers —
+> agentdocs-mcp isn't listed there yet. Until it is, use the
+> [REST API](https://agentdocs.eu/llms.txt) directly (full parity).
 
 ### Configuration
 
