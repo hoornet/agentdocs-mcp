@@ -9,10 +9,17 @@ interface PageNode {
   slug: string;
   parent_page_id?: string | null;
   updated_at?: string;
+  comment_count?: number;
+  unresolved_comment_count?: number;
+  last_comment_at?: string | null;
   children?: PageNode[];
 }
 
-/** Drop page content from listings to keep tool output small. */
+/**
+ * Drop page content from listings to keep tool output small. Comment stats are
+ * kept (when non-zero) — comments don't bump updated_at, so they are the only
+ * listing-level signal that a page has a discussion to read.
+ */
 function trimPageTree(pages: PageNode[]): PageNode[] {
   return pages.map((page) => ({
     id: page.id,
@@ -20,6 +27,13 @@ function trimPageTree(pages: PageNode[]): PageNode[] {
     slug: page.slug,
     parent_page_id: page.parent_page_id ?? null,
     updated_at: page.updated_at,
+    ...(page.comment_count
+      ? {
+          comment_count: page.comment_count,
+          unresolved_comment_count: page.unresolved_comment_count,
+          last_comment_at: page.last_comment_at,
+        }
+      : {}),
     ...(page.children?.length ? { children: trimPageTree(page.children) } : {}),
   }));
 }
@@ -118,7 +132,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "List pages",
       description:
-        "List the pages in a space as a tree (content omitted — use get_page to read a page). With a space-scoped token, omit \"space\" to use the token's space.",
+        "List the pages in a space as a tree (content omitted — use get_page to read a page). Pages with a discussion carry comment_count / unresolved_comment_count / last_comment_at — comments do NOT bump a page's updated_at, so check last_comment_at to spot new replies. With a space-scoped token, omit \"space\" to use the token's space.",
       inputSchema: {
         space: z
           .string()
@@ -140,7 +154,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Get page",
       description:
-        "Read a page including its full Markdown content and current version number. Set include_comments to also return the page's comment thread, and/or include_children to return the page's child pages (titles + slugs, no content) — useful for 'folder' pages whose own content is empty but which organise sub-pages.",
+        "Read a page including its full Markdown content and current version number. The page carries comment_count / unresolved_comment_count / last_comment_at — if comment_count > 0 there is a discussion; set include_comments to read it. include_children returns the page's child pages (titles + slugs, no content) — useful for 'folder' pages whose own content is empty but which organise sub-pages.",
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
         include_comments: z

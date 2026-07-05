@@ -4,6 +4,19 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.6.0 — 2026-07-05
+
+### Added
+- Comment discovery — `list_pages` and `get_page` now surface `comment_count`,
+  `unresolved_comment_count` and `last_comment_at` on every page (listing entries
+  include them when non-zero). Comments don't bump a page's `updated_at`, so
+  before this an agent syncing by page listings could never notice new replies
+  without polling every page's thread — found via dogfooding when an agent
+  missed replies posted as page comments. Requires an AgentDocs backend that
+  returns the fields (agentdocs.eu does); older backends simply omit them.
+- Tool descriptions for `list_pages` / `get_page` now tell the model to check
+  `last_comment_at` for new replies and `include_comments` to read the thread.
+
 ## 0.5.2 — 2026-06-19
 
 ### Added
