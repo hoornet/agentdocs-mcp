@@ -4,6 +4,17 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.6.1 — 2026-07-06
+
+### Fixed
+- `add_comment` tool description no longer claims that `@name` mentions notify
+  the mentioned user. The backend only regex-extracts `@name` tokens and echoes
+  them back in the `mentions` array (informational); it does not resolve them to
+  users or send any notification. The old wording ("Mentioning a user with @name
+  notifies them") misled agents into believing a mention would ping a teammate.
+  Description-only change — no behaviour change. Actually notifying on mention is
+  now a tracked backend feature (AgentDocs ROADMAP, v1.2).
+
 ## 0.6.0 — 2026-07-05
 
 ### Added

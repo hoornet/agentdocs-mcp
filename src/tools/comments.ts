@@ -51,10 +51,10 @@ export function registerCommentTools(server: McpServer, ctx: ToolContext): void 
     {
       title: "Add comment",
       description:
-        "Post a comment on a page. Set parent_comment_id to reply within an existing thread. Mentioning a user with @name notifies them; the returned 'mentions' array lists who was matched.",
+        "Post a comment on a page. Set parent_comment_id to reply within an existing thread. The returned 'mentions' array echoes @name tokens parsed from the body — it is informational only; posting a comment does NOT currently notify the mentioned user.",
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
-        content: z.string().min(1).max(10000).describe("Comment body (Markdown; supports @mentions)"),
+        content: z.string().min(1).max(10000).describe("Comment body (Markdown)"),
         parent_comment_id: z
           .string()
           .optional()
