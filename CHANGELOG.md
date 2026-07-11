@@ -4,6 +4,16 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.6.2 — 2026-07-11
+
+### Fixed
+- The server no longer reports a stale version. `VERSION` was a hardcoded
+  `"0.5.2"` literal in `src/index.ts` that had not been updated since the 0.5.2
+  release, so both the stdio startup banner and — more importantly — the
+  `version` advertised to every client in the MCP `initialize` handshake were
+  two releases behind the actual package. It is now read from `package.json` at
+  runtime, so it cannot drift again.
+
 ## 0.6.1 — 2026-07-06
 
 ### Fixed

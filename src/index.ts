@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config.js";
@@ -10,7 +11,11 @@ import { registerWriteTools } from "./tools/write.js";
 import { registerShareTools } from "./tools/share.js";
 import { registerCommentTools } from "./tools/comments.js";
 
-const VERSION = "0.5.2";
+// Read from package.json rather than a literal: this is the version reported to
+// every client in the MCP initialize handshake, and a hand-maintained copy had
+// silently drifted two releases behind.
+const pkg = createRequire(import.meta.url)("../package.json") as { version: string };
+const VERSION = pkg.version;
 
 interface MeResponse {
   user?: { name?: string; email?: string };
