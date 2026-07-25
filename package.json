@@ -27,6 +27,7 @@
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build",
+    "release": "npm run build && npm publish",
     "watch": "tsc --watch"
   },
   "keywords": [

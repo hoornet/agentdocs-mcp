@@ -3,11 +3,29 @@
 How `agentdocs-mcp` gets published to npm and listed in MCP directories.
 
 ## npm release (every version)
-1. Bump **both** `package.json` `version` and the `VERSION` const in `src/index.ts` (must match).
+1. Bump `version` in **`package.json` only**. `src/index.ts` *derives* `VERSION` from
+   `package.json` at runtime (`createRequire(...)("../package.json").version`).
+   **Never re-introduce a hardcoded `VERSION` literal** — a hand-maintained copy is exactly
+   what silently drifted two releases behind and shipped the wrong version in the MCP
+   `initialize` handshake through 0.6.0/0.6.1. Fixed in 0.6.2; keep it derived.
 2. Add a `CHANGELOG.md` entry.
 3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push --follow-tags`.
-4. `npm publish --otp=<code>` (needs the maintainer's npm login + 2FA; `prepublishOnly` runs `npm run build`).
-5. Cold-verify: `npx -y agentdocs-mcp@X.Y.Z` boots and prints the version banner.
+4. **`npm run release`** (= `npm run build && npm publish`), adding `--otp=<code>` if npm
+   prompts. Needs the maintainer's npm login + 2FA.
+   > ⚠️ **Do not rely on `prepublishOnly` to build.** It is a *lifecycle* hook, and any
+   > machine with `ignore-scripts=true` in its `~/.npmrc` — or a `--ignore-scripts` flag, or a
+   > CI runner configured that way — skips **all** lifecycle hooks **silently, with no warning**.
+   > `npm publish` would then package whatever stale `dist/` happens to be on disk; since
+   > `files: ["dist"]` and `bin` → `dist/index.js`, that ships a broken or outdated server to
+   > everyone running it via `npx`. An explicitly invoked `npm run <script>` is **never**
+   > suppressed by `ignore-scripts`, which is why the `release` script chains the build
+   > rather than trusting the hook. (`prepublishOnly` is kept as a belt-and-braces fallback
+   > for anyone publishing without it.)
+5. Verify `dist/` is actually fresh before/after publishing — `ls -la dist/` timestamps should
+   post-date your last `src/` edit. Note npm normalises all mtimes to `1985-10-26` *inside*
+   published tarballs, so you cannot check staleness from a downloaded `.tgz`.
+6. Cold-verify: `npx -y agentdocs-mcp@X.Y.Z` boots and prints the version banner — confirm the
+   banner shows **X.Y.Z**, which is the end-to-end check that the build was fresh.
 
 ## Official MCP registry (`modelcontextprotocol/registry`)
 Listed as **`io.github.hoornet/agentdocs-mcp`** via `server.json` (in repo root).
