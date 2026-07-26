@@ -4,7 +4,20 @@ import { join } from "node:path";
 
 export interface Config {
   baseUrl: string;
-  token: string;
+  /**
+   * Raw credential, sent as `Authorization: Token <token>`. Required for the
+   * stdio server, which owns exactly one credential for its whole lifetime.
+   */
+  token?: string;
+  /**
+   * Complete `Authorization` header value, used verbatim when present.
+   *
+   * The remote (Streamable HTTP) endpoint needs this: it serves many callers,
+   * each arriving with their own header, and that header may legitimately be
+   * `Bearer <jwt>` rather than `Token <api_token>`. Forwarding it unchanged
+   * avoids re-deriving a scheme the caller already chose.
+   */
+  authHeader?: string;
 }
 
 const TOKEN_FILE = join(homedir(), ".config", "agentdocs", "token");

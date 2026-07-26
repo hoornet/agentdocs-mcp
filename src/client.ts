@@ -61,6 +61,19 @@ export class AgentDocsClient {
     return this.config.baseUrl;
   }
 
+  /**
+   * `authHeader` wins when present (the remote endpoint forwards the caller's
+   * own header, which may be `Bearer <jwt>`); otherwise fall back to the stdio
+   * server's single `Token <api_token>` credential.
+   */
+  private get authorization(): string {
+    if (this.config.authHeader) return this.config.authHeader;
+    if (!this.config.token) {
+      throw new Error("AgentDocsClient requires either a token or an authHeader.");
+    }
+    return `Token ${this.config.token}`;
+  }
+
   async request<T = Record<string, unknown>>(
     method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     path: string,
@@ -75,7 +88,7 @@ export class AgentDocsClient {
     const init: RequestInit = {
       method,
       headers: {
-        Authorization: `Token ${this.config.token}`,
+        Authorization: this.authorization,
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
