@@ -4,6 +4,29 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.8.0 — 2026-07-26
+
+### Added
+- `Config.fetchImpl`: an injectable transport for API calls, defaulting to the
+  global `fetch`.
+
+  Motivated by a real production failure. AgentDocs' remote MCP endpoint runs
+  *inside* the process that serves the REST API and originally reached it over
+  loopback HTTP. On the production platform that process cannot reach itself —
+  neither at `127.0.0.1:$PORT` nor on a second loopback listener it binds
+  itself — so the transport worked (`initialize`, `tools/list`) while every
+  actual tool call failed with "Could not reach http://127.0.0.1:3000".
+
+  With `fetchImpl`, the host can dispatch requests straight into its own HTTP
+  app in-process. Permissions, tier limits, provenance and usage metering still
+  run in the real middleware, because it is the same app handling the request —
+  but there is no network hop to fail.
+
+### Changed
+- No behavioural change for the stdio server or any existing consumer:
+  `fetchImpl` is optional and the default remains the global `fetch`, including
+  the existing cold-start retry.
+
 ## 0.7.0 — 2026-07-26
 
 ### Added

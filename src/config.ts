@@ -18,6 +18,17 @@ export interface Config {
    * avoids re-deriving a scheme the caller already chose.
    */
   authHeader?: string;
+  /**
+   * Transport used for API calls. Defaults to the global `fetch`.
+   *
+   * AgentDocs' own backend hosts the remote endpoint *inside* the same process
+   * that serves the REST API, and injects a dispatcher that feeds requests
+   * straight into its Express app. That keeps every permission check, tier
+   * limit and usage counter running in the real middleware while removing any
+   * dependence on the process being able to reach itself over the network —
+   * which it could not do on the production platform.
+   */
+  fetchImpl?: (url: URL | string, init?: RequestInit) => Promise<Response>;
 }
 
 const TOKEN_FILE = join(homedir(), ".config", "agentdocs", "token");

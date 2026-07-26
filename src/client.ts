@@ -125,14 +125,15 @@ export class AgentDocsClient {
   }
 
   private async fetchWithColdStartRetry(url: URL, init: RequestInit): Promise<Response> {
+    const doFetch = this.config.fetchImpl ?? fetch;
     try {
-      return await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      return await doFetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
     } catch (err) {
       // One retry on timeout / transient network failure (Neon cold start, flaky DNS).
       const retriable =
         err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError" || err.name === "TypeError");
       if (!retriable) throw err;
-      return await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+      return await doFetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
     }
   }
 }

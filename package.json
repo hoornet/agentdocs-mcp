@@ -1,8 +1,8 @@
 {
   "name": "agentdocs-mcp",
   "mcpName": "io.github.hoornet/agentdocs-mcp",
-  "version": "0.7.0",
-  "description": "MCP server for AgentDocs (agentdocs.eu) — read, search, and write collaborative docs from any MCP client",
+  "version": "0.8.0",
+  "description": "MCP server for AgentDocs (agentdocs.eu) \u2014 read, search, and write collaborative docs from any MCP client",
   "license": "MIT",
   "author": "Jure (https://agentdocs.eu)",
   "homepage": "https://agentdocs.eu",
