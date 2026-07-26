@@ -1,15 +1,11 @@
 #!/usr/bin/env node
 import { createRequire } from "node:module";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig } from "./config.js";
 import { AgentDocsClient, ApiError } from "./client.js";
 import { Resolver } from "./resolve.js";
 import type { CredentialInfo, ToolContext } from "./context.js";
-import { registerReadTools } from "./tools/read.js";
-import { registerWriteTools } from "./tools/write.js";
-import { registerShareTools } from "./tools/share.js";
-import { registerCommentTools } from "./tools/comments.js";
+import { createMcpServer } from "./lib.js";
 
 // Read from package.json rather than a literal: this is the version reported to
 // every client in the MCP initialize handshake, and a hand-maintained copy had
@@ -67,11 +63,7 @@ async function main(): Promise<void> {
   const resolver = new Resolver(client, credential.type !== "space", credential.spaceId);
   const ctx: ToolContext = { client, resolver, credential };
 
-  const server = new McpServer({ name: "agentdocs", version: VERSION });
-  registerReadTools(server, ctx);
-  registerWriteTools(server, ctx);
-  registerShareTools(server, ctx);
-  registerCommentTools(server, ctx);
+  const server = createMcpServer(ctx, VERSION);
 
   await server.connect(new StdioServerTransport());
   console.error("agentdocs-mcp: ready (stdio)");

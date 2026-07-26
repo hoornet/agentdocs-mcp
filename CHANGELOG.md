@@ -4,6 +4,31 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.7.0 — 2026-07-26
+
+### Added
+- The package is now importable as a **library**, not just runnable as a stdio
+  binary. New `exports` map with `registerAllTools(server, ctx)` and
+  `createMcpServer(ctx, version)` from `dist/lib.js`, plus `AgentDocsClient`,
+  `Resolver` and the `ToolContext` / `Config` types. TypeScript declarations
+  are now emitted.
+
+  This exists so AgentDocs' backend can mount a **remote (Streamable HTTP)**
+  MCP endpoint at `POST /mcp` that registers these exact tool definitions per
+  request. Exporting them — rather than copying them into the backend — is what
+  keeps the stdio and remote surfaces from drifting apart.
+- `Config.authHeader`: a complete `Authorization` header value, used verbatim
+  when set. The remote endpoint serves many callers, each with their own header,
+  which may be `Bearer <jwt>` rather than `Token <api_token>`. `Config.token`
+  is now optional, and unchanged for stdio (still sent as `Token <token>`).
+- `"./package.json"` is included in the `exports` map, so tooling that reads it
+  (a common pattern for version checks) doesn't hit `ERR_PACKAGE_PATH_NOT_EXPORTED`.
+
+### Changed
+- No behavioural change to the stdio server. `src/index.ts` now builds its
+  server via the shared `createMcpServer()` instead of registering the four tool
+  groups inline; the 18 tools, their schemas and descriptions are identical.
+
 ## 0.6.2 — 2026-07-11
 
 ### Fixed
