@@ -55,6 +55,8 @@ Use the reusable copy below.
 - **Tagline:** Give your AI agent read/write access to collaborative docs — agents as first-class citizens.
 - **Description:** MCP server for AgentDocs (agentdocs.eu): 18 tools to read, search (full-text +
   pgvector semantic), create, update, comment on, and share Markdown docs. Slug-or-UUID addressing;
-  account or space-scoped tokens (sandbox an agent to one space). Self-hostable via `AGENTDOCS_URL`.
+  account or space-scoped tokens (sandbox an agent to one space). Also available as a **hosted remote
+  endpoint** at `https://agentdocs.eu/mcp` (Streamable HTTP) — nothing to install, and the answer for
+  catalog gateways and clients that can't launch `npx`.
 - **Install:** `claude mcp add agentdocs --env AGENTDOCS_TOKEN=<token> -- npx -y agentdocs-mcp`
 - **Tags:** documentation, knowledge-base, markdown, collaboration, semantic-search, writing

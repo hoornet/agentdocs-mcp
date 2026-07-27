@@ -26,7 +26,7 @@
         },
         {
           "name": "AGENTDOCS_URL",
-          "description": "Base URL of the AgentDocs instance. Set this only for a self-hosted instance.",
+          "description": "Override the AgentDocs API base URL. Advanced — defaults to the hosted service at https://agentdocs.eu; set this only if you have been given a different endpoint.",
           "isRequired": false,
           "isSecret": false,
           "default": "https://agentdocs.eu"

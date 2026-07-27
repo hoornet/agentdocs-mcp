@@ -146,7 +146,7 @@ Wrap the command in `cmd /c`:
 | Env var | Default | Purpose |
 |---|---|---|
 | `AGENTDOCS_TOKEN` | contents of `~/.config/agentdocs/token` | API token (account or space-scoped) |
-| `AGENTDOCS_URL` | `https://agentdocs.eu` | Point at a self-hosted AgentDocs instance |
+| `AGENTDOCS_URL` | `https://agentdocs.eu` | Override the API base URL. Advanced — only set this if you've been given a different endpoint |
 
 ### Updating
 
