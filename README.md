@@ -48,9 +48,15 @@ claude mcp add --transport http agentdocs https://agentdocs.eu/mcp \
 ```
 
 **Claude.ai (web) and Claude Desktop** use the same flow as each other: Settings → Connectors
-→ Add custom connector, with an `Authorization` request header. Request-header authentication
-is rolled out per-account as a beta, so if you don't see a **Request headers** section, use the
-[Skill](https://agentdocs.eu/agentdocs-skill.md) instead. OAuth, which needs no beta access, is planned.
+→ Add custom connector, with an `Authorization` request header.
+
+That request-header field is an Anthropic beta, enabled per-account. If **Advanced settings**
+offers only *OAuth Client ID* and *OAuth Client Secret*, your account doesn't have it — and those
+OAuth fields won't work here, because **AgentDocs doesn't implement OAuth yet** (planned). The
+connector will simply report a connection failure.
+
+In that case use the [Skill](https://agentdocs.eu/agentdocs-skill.md) (Skills → Upload Skill):
+no beta access needed, same REST API, and the reliable path on Claude.ai today.
 
 `Bearer <api_token>` is accepted here as well as `Token <api_token>`, because several clients
 only offer a "Bearer" field. Account tokens and space-scoped tokens both work — a space token
