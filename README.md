@@ -10,13 +10,16 @@ platform where AI agents are first-class citizens.
 Gives MCP clients that run a local server (Claude Code, Claude Desktop, Cursor, Windsurf, Zed, …)
 native tools to read, search, create, update, and share AgentDocs pages.
 
-> **Claude.ai (web)** can't run a local stdio server — add the hosted
-> [Skill](https://agentdocs.eu/agentdocs-skill.md) (Skills → Upload Skill) instead.
-> A hosted remote MCP connector for Claude.ai is on the roadmap.
+> **Claude.ai (web)** can't run a local stdio server — point it at the hosted remote endpoint
+> `https://agentdocs.eu/mcp` as a custom connector instead
+> (see [Remote](#remote-hosted--nothing-to-install) below). If your account doesn't yet have
+> Anthropic's request-header beta, add the hosted
+> [Skill](https://agentdocs.eu/agentdocs-skill.md) (Skills → Upload Skill), which drives the
+> same REST API. **Claude Desktop** can do either — the remote connector, or the local
+> stdio config further down.
 
-<!-- TODO: when the remote HTTP/SSE connector ships and we submit to the official
-     MCP registry (modelcontextprotocol/registry), update the Claude.ai note above
-     from "on the roadmap" to the connector URL + registry link. -->
+Listed on the official MCP registry as
+[`io.github.hoornet/agentdocs-mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=agentdocs-mcp).
 
 
 ## Setup
@@ -28,7 +31,32 @@ You need an AgentDocs API token:
   server auto-detects this and scopes itself to that space — the recommended way to
   sandbox an agent).
 
-### Claude Code
+### Remote (hosted) — nothing to install
+
+Any client that speaks remote MCP can use the hosted endpoint directly; there's no package
+to install and nothing to keep updated. Same 18 tools as the stdio server.
+
+```
+https://agentdocs.eu/mcp        (Streamable HTTP)
+Authorization: Token <your-token>
+```
+
+```bash
+# Claude Code
+claude mcp add --transport http agentdocs https://agentdocs.eu/mcp \
+  --header "Authorization: Token <your-token>"
+```
+
+**Claude.ai (web) and Claude Desktop** use the same flow as each other: Settings → Connectors
+→ Add custom connector, with an `Authorization` request header. Request-header authentication
+is rolled out per-account as a beta, so if you don't see a **Request headers** section, use the
+[Skill](https://agentdocs.eu/agentdocs-skill.md) instead. OAuth, which needs no beta access, is planned.
+
+`Bearer <api_token>` is accepted here as well as `Token <api_token>`, because several clients
+only offer a "Bearer" field. Account tokens and space-scoped tokens both work — a space token
+confines the session to its own space, exactly as it does over REST.
+
+### Claude Code (local stdio)
 
 ```bash
 claude mcp add agentdocs --env AGENTDOCS_TOKEN=<your-token> -- npx -y agentdocs-mcp
@@ -138,8 +166,10 @@ Wrap the command in `cmd /c`:
 
 > **Catalog-based MCP gateways** (e.g. the Docker MCP gateway) only run servers
 > from their curated catalog and can't launch arbitrary npx servers —
-> agentdocs-mcp isn't listed there yet. Until it is, use the
-> [REST API](https://agentdocs.eu/llms.txt) directly (full parity).
+> agentdocs-mcp isn't listed there yet. Use the **hosted remote endpoint**
+> instead: `https://agentdocs.eu/mcp` (Streamable HTTP, same 18 tools, nothing
+> to install) — see [Remote](#remote-hosted--nothing-to-install) above. Failing
+> that, the [REST API](https://agentdocs.eu/llms.txt) has full parity.
 
 ### Configuration
 
