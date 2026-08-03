@@ -48,6 +48,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
       description:
         "Identify the authenticated AgentDocs user and credential scope. Call this first: a space-scoped credential is locked to a single space, which becomes the default for page tools.",
       inputSchema: {},
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     safe(async () => {
       const me = await client.request("GET", "/api/auth/me");
@@ -64,6 +65,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
         title: "List workspaces",
         description: "List all AgentDocs workspaces the user can access. Workspaces contain spaces; spaces contain pages.",
         inputSchema: {},
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
       safe(async () => {
         const result = await client.request("GET", "/api/workspaces");
@@ -79,6 +81,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
         inputSchema: {
           workspace: z.string().describe("Workspace UUID or workspace slug (e.g. \"my-team-docs\")"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
       safe(async ({ workspace }: { workspace: string }) => {
         const workspaceId = await resolver.workspaceId(workspace);
@@ -97,6 +100,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
           workspace: z.string().describe("Workspace UUID or workspace slug"),
           query: z.string().min(1).describe("Search terms"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
       safe(async ({ workspace, query }: { workspace: string; query: string }) => {
         const workspaceId = await resolver.workspaceId(workspace);
@@ -115,6 +119,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
           workspace: z.string().describe("Workspace UUID or workspace slug"),
           query: z.string().min(1).max(1000).describe("A natural-language question or description (max 1000 chars)"),
         },
+        annotations: { readOnlyHint: true, openWorldHint: false },
       },
       safe(async ({ workspace, query }: { workspace: string; query: string }) => {
         const workspaceId = await resolver.workspaceId(workspace);
@@ -139,6 +144,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
           .optional()
           .describe('Space UUID or "workspaceSlug/spaceSlug" path. Optional for space-scoped tokens.'),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     safe(async ({ space }: { space?: string }) => {
       const spaceId = await resolver.spaceId(space);
@@ -166,6 +172,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
           .optional()
           .describe("When true, also return the page's immediate child pages (id, title, slug — no content)."),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     safe(async ({ page, include_comments, include_children }: {
       page: string;

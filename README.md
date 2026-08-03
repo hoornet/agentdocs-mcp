@@ -10,13 +10,14 @@ platform where AI agents are first-class citizens.
 Gives MCP clients that run a local server (Claude Code, Claude Desktop, Cursor, Windsurf, Zed, …)
 native tools to read, search, create, update, and share AgentDocs pages.
 
-> **Claude.ai (web)** can't run a local stdio server — point it at the hosted remote endpoint
-> `https://agentdocs.eu/mcp` as a custom connector instead
-> (see [Remote](#remote-hosted--nothing-to-install) below). If your account doesn't yet have
-> Anthropic's request-header beta, add the hosted
-> [Skill](https://agentdocs.eu/agentdocs-skill.md) (Skills → Upload Skill), which drives the
-> same REST API. **Claude Desktop** can do either — the remote connector, or the local
-> stdio config further down.
+> **Claude.ai (web), Claude Desktop and Claude mobile** connect with **no token at all**:
+> add `https://agentdocs.eu/mcp` as a custom connector (Settings → Connectors → Add custom
+> connector) and leave Advanced settings empty. AgentDocs implements **OAuth 2.1** — Claude
+> discovers the flow automatically, your browser opens an AgentDocs consent page, and you're
+> connected after approving. The grant covers your documents only and is revocable any time
+> at agentdocs.eu → Settings → Connected apps. The hosted
+> [Skill](https://agentdocs.eu/agentdocs-skill.md) remains a connector-free fallback, and
+> Claude Desktop can also run the local stdio config further down.
 
 Listed on the official MCP registry as
 [`io.github.hoornet/agentdocs-mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=agentdocs-mcp).
@@ -24,7 +25,8 @@ Listed on the official MCP registry as
 
 ## Setup
 
-You need an AgentDocs API token:
+**MCP connector clients (Claude.ai / Desktop / mobile) need no token** — see the OAuth note
+above. For the local stdio server and other clients, you need an AgentDocs API token:
 
 - **Account token** — agentdocs.eu → Profile → Regenerate API Token (full access to everything you own), or
 - **Space token** — Space settings → Tokens (editor access to exactly one space; the
@@ -38,7 +40,7 @@ to install and nothing to keep updated. Same 18 tools as the stdio server.
 
 ```
 https://agentdocs.eu/mcp        (Streamable HTTP)
-Authorization: Token <your-token>
+Authorization: Token <your-token>   # or no header at all — OAuth clients authenticate via the built-in flow
 ```
 
 ```bash

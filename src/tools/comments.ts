@@ -38,6 +38,7 @@ export function registerCommentTools(server: McpServer, ctx: ToolContext): void 
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
       },
+      annotations: { readOnlyHint: true, openWorldHint: false },
     },
     safe(async ({ page }: { page: string }) => {
       const pageId = await resolver.pageId(page);
@@ -60,6 +61,7 @@ export function registerCommentTools(server: McpServer, ctx: ToolContext): void 
           .optional()
           .describe("UUID of the comment being replied to, to thread under it (omit for a top-level comment)"),
       },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ page, content, parent_comment_id }: {
       page: string;
@@ -90,6 +92,7 @@ export function registerCommentTools(server: McpServer, ctx: ToolContext): void 
         content: z.string().min(1).max(10000).optional().describe("New comment body (replaces the existing text)"),
         resolved: z.boolean().optional().describe("Mark the comment thread resolved (true) or reopen it (false)"),
       },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ comment, content, resolved }: {
       comment: string;
@@ -117,6 +120,7 @@ export function registerCommentTools(server: McpServer, ctx: ToolContext): void 
       inputSchema: {
         comment: z.string().describe("Comment UUID (from get_page include_comments or list_comments)"),
       },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ comment }: { comment: string }) => {
       const commentId = requireCommentId(comment);

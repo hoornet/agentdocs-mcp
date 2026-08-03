@@ -30,6 +30,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
         parent_page_id: z.string().optional().describe("Parent page UUID, to nest this page under another"),
         slug: z.string().optional().describe("Explicit URL slug (auto-generated and deduped when omitted)"),
       },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ space, title, content, parent_page_id, slug }: {
       space?: string;
@@ -65,6 +66,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
           .optional()
           .describe("If set and the page has moved past this version, the update is rejected"),
       },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ page, title, content, expected_version }: {
       page: string;
@@ -106,6 +108,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
         content: z.string().min(1).describe("Markdown to append"),
         separator: z.string().optional().describe('Separator inserted before the appended text (default: blank line "\\n\\n")'),
       },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ page, content, separator }: { page: string; content: string; separator?: string }) => {
       const pageId = await resolver.pageId(page);
@@ -130,6 +133,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
       },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ page }: { page: string }) => {
       const pageId = await resolver.pageId(page);
@@ -168,6 +172,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
           .optional()
           .describe("When true, re-importing updates the content of pages that already exist (re-sync). Default false: existing pages are left untouched."),
       },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     safe(async ({ space, files, parent_page, overwrite_existing }: {
       space?: string;
@@ -219,6 +224,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
           .max(500)
           .describe("Pages to create"),
       },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ space, pages }: {
       space?: string;
