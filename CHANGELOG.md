@@ -4,6 +4,28 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.9.0 — 2026-08-03
+
+### Added
+- **MCP tool annotations on all 18 tools** (`readOnlyHint`, `destructiveHint`,
+  `idempotentHint`, `openWorldHint`). Read tools (`whoami`, `list_*`, `get_page`,
+  `search_docs`, `semantic_search`, `list_comments`) declare `readOnlyHint: true`;
+  `delete_page`, `delete_comment`, `update_page` and `update_comment` declare
+  `destructiveHint: true`; additive writes (`create_page`, `append_to_page`,
+  `add_comment`, `bulk_create_pages`, `share_page`) declare it `false`;
+  `import_markdown` declares `idempotentHint: true` (it matches pages by source
+  path by design). Every tool sets `openWorldHint: false` — they only ever talk
+  to AgentDocs. Clients use these to calibrate permission prompts; Anthropic's
+  connector directory expects them. Hosts embedding `registerAllTools()` (the
+  hosted remote endpoint) inherit the annotations automatically.
+
+### Changed
+- README rewritten for the OAuth era: Claude.ai/Desktop/mobile connect to the
+  hosted endpoint with **no token and no headers** — AgentDocs now runs a full
+  OAuth 2.1 authorization server with dynamic client registration, so the
+  request-header-beta guidance is obsolete. Token setup remains for the local
+  stdio server and non-OAuth clients.
+
 ## 0.8.0 — 2026-07-26
 
 ### Added

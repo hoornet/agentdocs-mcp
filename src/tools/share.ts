@@ -29,6 +29,7 @@ export function registerShareTools(server: McpServer, ctx: ToolContext): void {
           .optional()
           .describe("Days until the link expires. Omit for a non-expiring link."),
       },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     safe(async ({ page, expires_in_days }: { page: string; expires_in_days?: number }) => {
       const pageId = await resolver.pageId(page);
