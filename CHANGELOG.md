@@ -4,6 +4,18 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.9.2 — 2026-08-05
+
+### Fixed
+- **Registry metadata: the remote endpoint's `Authorization` header is now
+  declared OPTIONAL**, not required. `agentdocs.eu/mcp` has run an OAuth 2.1
+  authorization server with dynamic client registration since 2026-07-31 —
+  Claude.ai, Claude Desktop and Claude mobile connect with no header at all.
+  The old `isRequired: true` told every directory and client that consumes
+  `server.json` to demand a token from users who don't need one, which is
+  precisely backwards from the endpoint's main selling point. The header
+  remains documented for clients without OAuth support.
+
 ## 0.9.1 — 2026-08-05
 
 ### Fixed
