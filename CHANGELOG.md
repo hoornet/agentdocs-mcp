@@ -4,6 +4,28 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.9.1 — 2026-08-05
+
+### Fixed
+- **The server no longer refuses to start on an unverified credential.** It
+  still probes `/api/auth/me` at boot to learn the credential's scope (a
+  space-scoped token hides the workspace-level tools), but a 401 — or an
+  unreachable API — now logs a warning and serves the full tool surface
+  instead of `process.exit(1)`.
+
+  This mattered more than it looked. The MCP handshake and `tools/list` carry
+  no credential of their own, and automated clients rely on that: registry
+  indexers (Glama, `docker/mcp-registry`'s `build --tools`) boot a server with
+  a *placeholder* token purely to enumerate its tools. Exiting first made this
+  server un-inspectable by every one of them — Glama reported it as "cannot be
+  installed / quality: not tested", and the Docker catalog submission had to
+  carry a hand-maintained `tools.json` to work around it.
+
+  The diagnosis the old fail-fast gave up isn't lost, just deferred: the first
+  tool call returns the same actionable 401 ("regenerate it at … and update
+  AGENTDOCS_TOKEN"). Verified against Glama's exact placeholder token —
+  18 tools listed, tool call reports the credential error.
+
 ## 0.9.0 — 2026-08-03
 
 ### Added
