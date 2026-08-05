@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.hoornet/agentdocs-mcp",
   "description": "MCP server for AgentDocs (agentdocs.eu): read, search, write, comment on & share Markdown docs.",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "repository": {
     "url": "https://github.com/hoornet/agentdocs-mcp",
     "source": "github"
@@ -12,7 +12,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "agentdocs-mcp",
-      "version": "0.9.1",
+      "version": "0.9.2",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
@@ -20,7 +20,7 @@
       "environmentVariables": [
         {
           "name": "AGENTDOCS_TOKEN",
-          "description": "AgentDocs API token (account or space-scoped). Profile \u2192 Regenerate API Token, or Space settings \u2192 Tokens.",
+          "description": "AgentDocs API token (account or space-scoped). Profile → Regenerate API Token, or Space settings → Tokens.",
           "isRequired": true,
           "isSecret": true
         },
@@ -41,8 +41,8 @@
       "headers": [
         {
           "name": "Authorization",
-          "description": "AgentDocs API token, as \"Token <api_token>\" (account or space-scoped). \"Bearer <api_token>\" is also accepted. Profile \u2192 Regenerate API Token, or Space settings \u2192 Tokens.",
-          "isRequired": true,
+          "description": "OPTIONAL. The endpoint implements OAuth 2.1 with dynamic client registration, so MCP clients that support OAuth (Claude.ai, Claude Desktop, Claude mobile) connect with no header at all — discovery, consent and tokens are automatic. Supply this header only for clients without OAuth support: \"Token <api_token>\" (account or space-scoped); \"Bearer <api_token>\" is also accepted. Get one at Profile → Regenerate API Token, or Space settings → Tokens.",
+          "isRequired": false,
           "isSecret": true
         }
       ]
