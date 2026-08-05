@@ -41,24 +41,31 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const client = new AgentDocsClient(config);
 
-  // Verify the credential up front: a bad token should fail fast with a clear
-  // message instead of surfacing as cryptic per-tool errors later.
-  let credential: CredentialInfo;
+  // Probe the credential to learn its scope — a space-scoped token hides the
+  // workspace-level tools — but NEVER refuse to start over it. The MCP
+  // handshake and tools/list carry no credential of their own, and automated
+  // clients depend on that: registry indexers (Glama, docker/mcp-registry's
+  // `build --tools`) boot the server with a placeholder token purely to
+  // enumerate its tools. Exiting here made this server un-inspectable by all
+  // of them — it had to ship a hand-maintained tools.json to compensate.
+  //
+  // So on a bad or unreachable credential we log, assume the full tool
+  // surface, and let the first actual tool call return the real API error.
+  // The diagnosis the old fail-fast provided is preserved, just deferred to
+  // the point where it costs nothing.
+  let credential: CredentialInfo = { type: "account" };
   try {
     credential = await detectCredential(client);
+    const scopeNote =
+      credential.type === "space"
+        ? ` (space-scoped: ${credential.spaceName ?? credential.spaceId} in ${credential.workspaceName ?? "?"})`
+        : ` (${credential.type} credential)`;
+    console.error(`agentdocs-mcp v${VERSION}: connected to ${config.baseUrl} as ${credential.userName ?? "unknown"}${scopeNote}`);
   } catch (err) {
-    if (err instanceof ApiError && err.status === 401) {
-      console.error(`agentdocs-mcp: ${err.message}`);
-      process.exit(1);
-    }
-    throw err;
+    const why = err instanceof ApiError && err.status === 401 ? err.message : err instanceof Error ? err.message : String(err);
+    console.error(`agentdocs-mcp v${VERSION}: could not verify the credential against ${config.baseUrl} — ${why}`);
+    console.error("agentdocs-mcp: serving the full tool surface anyway; tool calls will fail until AGENTDOCS_TOKEN is valid.");
   }
-
-  const scopeNote =
-    credential.type === "space"
-      ? ` (space-scoped: ${credential.spaceName ?? credential.spaceId} in ${credential.workspaceName ?? "?"})`
-      : ` (${credential.type} credential)`;
-  console.error(`agentdocs-mcp v${VERSION}: connected to ${config.baseUrl} as ${credential.userName ?? "unknown"}${scopeNote}`);
 
   const resolver = new Resolver(client, credential.type !== "space", credential.spaceId);
   const ctx: ToolContext = { client, resolver, credential };
