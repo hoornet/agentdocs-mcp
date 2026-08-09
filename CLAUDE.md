@@ -21,7 +21,8 @@ ESM (`"type": "module"`), TypeScript, Node `>=20`, no runtime framework. Depende
 | `src/resolve.ts` | slug-or-UUID addressing |
 | `src/context.ts` | shared `ToolContext` / `CredentialInfo` types |
 | `src/tools/{read,write,share,comments}.ts` | the MCP tool registrations |
-| `test/*.mjs` | smoke scripts, run by hand (there is **no** `npm test` script) |
+| `test/*.test.mjs` | unit tests — no credentials, no network. `npm run test:unit` |
+| `test/smoke*.mjs` | smoke scripts, run by hand against a real instance (credentials required) |
 | `docs/PUBLISHING.md` | release procedure + directory/registry listings |
 | `server.json` | official MCP registry manifest — version must match the published npm version |
 

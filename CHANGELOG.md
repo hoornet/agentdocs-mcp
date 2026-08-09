@@ -4,6 +4,34 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.9.3 — 2026-08-09
+
+### Security
+- **Fixed a polynomial-time regular expression (ReDoS) in slug resolution.**
+  `Resolver.workspaceId` / `spaceId` / `pageId` trimmed surrounding slashes with
+  `ref.replace(/^\/+|\/+$/g, "")`. The unanchored `\/+$` branch retries at every
+  start offset, so a slash run that does not reach the end of the string —
+  `"a" + "/".repeat(n) + "b"` — costs O(n²): 20k slashes took 255ms, 80k took
+  4.0s and 320k took 65s on Node 20. Trimming is now a linear character scan,
+  and references longer than 1024 characters are rejected outright.
+
+  These references are declared as bare `z.string()`, so the input is bounded
+  only by the transport. That makes it reachable from a single authenticated
+  tool call, and the hosted `agentdocs.eu/mcp` endpoint runs this same code
+  in the process that serves the site, where a 1 MB argument would have stalled
+  the event loop for minutes. Reported by CodeQL (`js/polynomial-redos`,
+  alerts 1–3); no exploitation observed.
+
+  Anyone running the hosted endpoint gets this automatically once the server is
+  redeployed. Users of the stdio server should upgrade, though the exposure
+  there is limited to whatever the local MCP client sends.
+
+### Added
+- `test/resolve.test.mjs` and an `npm run test:unit` script — the first tests in
+  this repo that need no credentials and no network. Includes a timing-based
+  regression guard for the ReDoS above (the pathological input finishes in
+  under 1ms fixed; it does not finish within 120s unfixed).
+
 ## 0.9.2 — 2026-08-05
 
 ### Fixed
