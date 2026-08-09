@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20" # matches engines.node
+          cache: npm
+
+      - run: npm ci
+
+      # Builds to dist/ and runs test/*.test.mjs. The smoke scripts are NOT run
+      # here — they need real credentials and write to a live instance.
+      - run: npm run test:unit
