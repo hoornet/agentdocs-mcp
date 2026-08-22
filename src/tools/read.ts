@@ -45,6 +45,20 @@ async function collectPageImages(
   for (const ref of take) {
     try {
       const { bytes, mimeType } = await client.fetchBinary(ref);
+
+      // A deleted or never-existent upload does NOT come back as a 404: the
+      // app's catch-all answers 200 with an HTML page, so response.ok is true
+      // and the HTML would sail through as "image" bytes — a 22 KB page
+      // base64'd into the model's context under mimeType text/html. Deleting
+      // an upload is a normal action now, so dangling references are routine.
+      // Trust the content type, not the status code.
+      if (!mimeType.startsWith("image/")) {
+        notes.push(
+          `${ref} is not available (server returned ${mimeType || "an unknown type"} instead of an image) — it was probably deleted.`
+        );
+        continue;
+      }
+
       images.push({ type: "image", data: bytes.toString("base64"), mimeType });
     } catch (err) {
       notes.push(`Could not load ${ref}: ${err instanceof Error ? err.message : String(err)}`);

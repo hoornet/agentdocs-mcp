@@ -178,3 +178,52 @@ test("requires exactly one source", async () => {
   assert.equal(both.isError, true);
   assert.match(textOf(both), /only one of/);
 });
+
+test("accepts a data: URI wrapper, not just bare base64", async () => {
+  // Agents reach for "data:image/png;base64,..." naturally. Before this was
+  // stripped, the whole string decoded to garbage and failed the format sniff
+  // with a misleading "unsupported format" error.
+  const { ctx, uploads } = makeCtx({ localFiles: false });
+  const { client } = await connect(ctx);
+
+  const result = await client.callTool({
+    name: "upload_image",
+    arguments: { data: `data:image/png;base64,${PNG.toString("base64")}`, space: "ws/sp" },
+  });
+
+  assert.ok(!result.isError, textOf(result));
+  assert.equal(uploads.length, 1);
+  assert.equal(Buffer.compare(uploads[0].file.bytes, PNG), 0);
+});
+
+test("does not return a misleading absolute_url", async () => {
+  // On the remote surface client.baseUrl is a synthetic self-base nothing
+  // dials, so an absolute URL rendered from it points at 127.0.0.1 and an
+  // agent following it fails.
+  const { ctx } = makeCtx({ localFiles: false });
+  const { client } = await connect(ctx);
+
+  const result = await client.callTool({
+    name: "upload_image",
+    arguments: { data: PNG.toString("base64"), space: "ws/sp" },
+  });
+
+  const payload = JSON.parse(textOf(result));
+  assert.equal(payload.absolute_url, undefined);
+  assert.equal(payload.url, "/api/uploads/abc.png");
+  assert.match(payload.markdown, /^!\[.*\]\(\/api\/uploads\/abc\.png\)$/);
+});
+
+test("tool description tells an agent how to supply bytes it can only see", async () => {
+  const { ctx } = makeCtx({ localFiles: false });
+  const { client } = await connect(ctx);
+  const { tools } = await client.listTools();
+  const t = tools.find(x => x.name === "upload_image");
+
+  assert.match(t.description, /PNG, JPEG, GIF, WebP/);
+  assert.match(t.description, /5 MB/);
+  assert.match(t.description, /only SEE an image/);
+  // The remote surface must not advertise `path` as usable.
+  assert.match(t.inputSchema.properties.path.description, /NOT SUPPORTED/);
+});
+

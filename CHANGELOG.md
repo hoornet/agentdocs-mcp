@@ -4,6 +4,37 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.10.1 — 2026-08-22
+
+Follow-ups from verifying 0.10.0 against production, and from watching an agent
+actually try to use it.
+
+### Fixed
+- **`get_page include_images` could return an HTML page as an image.** A deleted
+  or dangling `/api/uploads/` reference does not 404 — the app's catch-all answers
+  `200 text/html` — so `response.ok` was true and a 22 KB HTML page was base64'd
+  into the model's context under `mimeType: text/html`. The content type is now
+  checked: anything that isn't `image/*` is skipped and explained in
+  `image_notes`. This matters more since 0.10.0 shipped a delete endpoint, which
+  makes dangling references routine rather than rare.
+- **`data` now accepts a `data:image/png;base64,...` URI**, not only bare base64.
+  Agents reach for the URI form naturally; previously the whole string was decoded,
+  produced garbage, and failed with a misleading "unsupported format" error. That
+  error message now also names the likely causes.
+- **Dropped `absolute_url` from the upload result.** On the remote surface
+  `client.baseUrl` is a synthetic self-base that nothing dials, so the field
+  rendered as `http://127.0.0.1:3000/...` — a URL an agent would follow and fail
+  on. The relative `url` and `markdown` are what belong in a page.
+
+### Changed
+- **`upload_image`'s description now explains how to supply an image**, because
+  field reports showed agents getting stuck here. It states the accepted formats
+  and size up front, describes each source and when it is usable, and names the
+  trap directly: an image you have only *viewed* (a screenshot another tool
+  returned) cannot be re-encoded from what you see — you saw pixels, not bytes, so
+  you need the actual file. The stdio and remote surfaces give different advice,
+  since `path` only exists on one of them.
+
 ## 0.10.0 — 2026-08-22
 
 ### Added
