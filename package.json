@@ -1,8 +1,8 @@
 {
   "name": "agentdocs-mcp",
   "mcpName": "io.github.hoornet/agentdocs-mcp",
-  "version": "0.9.3",
-  "description": "MCP server for AgentDocs (agentdocs.eu) — read, search, and write collaborative docs from any MCP client",
+  "version": "0.10.0",
+  "description": "MCP server for AgentDocs (agentdocs.eu) \u2014 read, search, and write collaborative docs from any MCP client",
   "license": "MIT",
   "author": "Jure (https://agentdocs.eu)",
   "homepage": "https://agentdocs.eu",
@@ -38,7 +38,7 @@
     "prepublishOnly": "npm run build",
     "release": "npm run build && npm publish",
     "watch": "tsc --watch",
-    "test:unit": "npm run build && node --test test/resolve.test.mjs"
+    "test:unit": "npm run build && node --test test/resolve.test.mjs test/media.test.mjs"
   },
   "keywords": [
     "mcp",

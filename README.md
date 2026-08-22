@@ -36,7 +36,7 @@ above. For the local stdio server and other clients, you need an AgentDocs API t
 ### Remote (hosted) — nothing to install
 
 Any client that speaks remote MCP can use the hosted endpoint directly; there's no package
-to install and nothing to keep updated. Same 18 tools as the stdio server.
+to install and nothing to keep updated. Same 19 tools as the stdio server.
 
 ```
 https://agentdocs.eu/mcp        (Streamable HTTP)
@@ -175,7 +175,7 @@ Wrap the command in `cmd /c`:
 > **Catalog-based MCP gateways** (e.g. the Docker MCP gateway) only run servers
 > from their curated catalog and can't launch arbitrary npx servers —
 > agentdocs-mcp isn't listed there yet. Use the **hosted remote endpoint**
-> instead: `https://agentdocs.eu/mcp` (Streamable HTTP, same 18 tools, nothing
+> instead: `https://agentdocs.eu/mcp` (Streamable HTTP, same 19 tools, nothing
 > to install) — see [Remote](#remote-hosted--nothing-to-install) above. Failing
 > that, the [REST API](https://agentdocs.eu/llms.txt) has full parity.
 
@@ -209,7 +209,7 @@ npx -y agentdocs-mcp@latest    # or: npm cache clean --force
 | `list_pages` | Page tree of a space (without content) |
 | `search_docs` | Full-text (keyword) search across a workspace ¹ |
 | `semantic_search` | Natural-language search ranked by meaning — Pro workspaces ¹ |
-| `get_page` | Read a page (full Markdown + version); optional `include_comments` / `include_children` |
+| `get_page` | Read a page (full Markdown + version); optional `include_comments` / `include_children` / `include_images` (returns embedded images as viewable image blocks) |
 | `create_page` | Create a Markdown page (nestable) |
 | `update_page` | Update title/content, with optional optimistic version check |
 | `append_to_page` | Append Markdown — ideal for logs and session reports |
@@ -221,8 +221,14 @@ npx -y agentdocs-mcp@latest    # or: npm cache clean --force
 | `add_comment` | Post a comment / threaded reply (with `@mentions`) |
 | `update_comment` | Edit a comment or mark its thread resolved (author/admin) |
 | `delete_comment` | Delete a comment (author/admin) |
+| `upload_image` | Attach a PNG/JPEG/GIF/WebP to a space and get Markdown to embed it — from `path` ², `source_url`, or base64 `data` |
 
 ¹ Hidden when running with a space-scoped token.
+
+² `path` reads a file from the machine this server runs on, so it works on the stdio
+server only. The hosted `agentdocs.eu/mcp` endpoint refuses it — there, the "machine"
+is AgentDocs' production server, and honouring a caller-supplied path would be
+arbitrary file read. Use `source_url` or `data` there.
 
 Pages, spaces, and workspaces are addressable by UUID **or** human-readable slug
 path — `get_page` accepts `"my-workspace/my-space/my-page"`, `create_page` accepts

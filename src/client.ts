@@ -1,4 +1,5 @@
 import type { Config } from "./config.js";
+import { randomBytes } from "node:crypto";
 
 /**
  * Neon free tier suspends after ~5 min idle and takes 10-15s to wake; the
@@ -122,6 +123,88 @@ export class AgentDocsClient {
     }
 
     return json as T;
+  }
+
+  /**
+   * Upload one file as multipart/form-data.
+   *
+   * Hand-builds the body as a Buffer rather than using FormData/Blob. That is
+   * NOT stylistic: on the remote surface this request is dispatched in-process
+   * by AgentDocs' backend (backend/src/mcp/inProcessFetch.js), which only
+   * special-cases Buffer and otherwise does Buffer.from(String(init.body)) —
+   * a FormData would be stringified to "[object FormData]" and the upload would
+   * silently arrive as garbage.
+   */
+  async uploadFile<T = Record<string, unknown>>(
+    path: string,
+    file: { bytes: Buffer; filename: string; mimeType: string },
+    query?: Record<string, string>
+  ): Promise<T> {
+    const url = new URL(`${this.config.baseUrl}${path}`);
+    for (const [key, value] of Object.entries(query ?? {})) {
+      url.searchParams.set(key, value);
+    }
+
+    const boundary = `----agentdocs${randomBytes(16).toString("hex")}`;
+    const safeName = file.filename.replace(/[\r\n"]/g, "_");
+    const head = Buffer.from(
+      `--${boundary}\r\n` +
+        `Content-Disposition: form-data; name="file"; filename="${safeName}"\r\n` +
+        `Content-Type: ${file.mimeType}\r\n\r\n`
+    );
+    const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+    const body = Buffer.concat([head, file.bytes, tail]);
+
+    const init: RequestInit = {
+      method: "POST",
+      headers: {
+        Authorization: this.authorization,
+        "Content-Type": `multipart/form-data; boundary=${boundary}`,
+      },
+      body: body as unknown as BodyInit,
+    };
+
+    let response: Response;
+    try {
+      response = await this.fetchWithColdStartRetry(url, init);
+    } catch (err) {
+      throw new Error(
+        `Could not reach ${this.config.baseUrl} (${err instanceof Error ? err.message : String(err)}). ` +
+          `The server may be waking from idle (first request can take ~15s) — retry in a moment.`
+      );
+    }
+
+    const text = await response.text();
+    let json: Record<string, unknown> = {};
+    if (text) {
+      try {
+        json = JSON.parse(text) as Record<string, unknown>;
+      } catch {
+        if (!response.ok) {
+          throw new ApiError(response.status, {}, `AgentDocs API error ${response.status} (non-JSON response)`);
+        }
+      }
+    }
+    if (!response.ok) {
+      throw new ApiError(response.status, json, friendlyMessage(response.status, json, this.config.baseUrl));
+    }
+    return json as T;
+  }
+
+  /** Fetch raw bytes (an uploaded image) rather than JSON. */
+  async fetchBinary(path: string): Promise<{ bytes: Buffer; mimeType: string }> {
+    const url = new URL(`${this.config.baseUrl}${path}`);
+    const doFetch = this.config.fetchImpl ?? fetch;
+    const response = await doFetch(url, {
+      method: "GET",
+      headers: { Authorization: this.authorization },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!response.ok) throw new ApiError(response.status, {}, `Could not read ${path} (HTTP ${response.status}).`);
+    return {
+      bytes: Buffer.from(await response.arrayBuffer()),
+      mimeType: response.headers.get("content-type") ?? "application/octet-stream",
+    };
   }
 
   private async fetchWithColdStartRetry(url: URL, init: RequestInit): Promise<Response> {

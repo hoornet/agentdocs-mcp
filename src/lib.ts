@@ -13,11 +13,12 @@ import { registerReadTools } from "./tools/read.js";
 import { registerWriteTools } from "./tools/write.js";
 import { registerShareTools } from "./tools/share.js";
 import { registerCommentTools } from "./tools/comments.js";
+import { registerMediaTools } from "./tools/media.js";
 
 export { AgentDocsClient, ApiError } from "./client.js";
 export { Resolver, isUuid } from "./resolve.js";
 export type { Config } from "./config.js";
-export type { CredentialInfo, ToolContext } from "./context.js";
+export type { CredentialInfo, ToolContext, ToolCapabilities } from "./context.js";
 
 /** Register the full AgentDocs tool set on an MCP server instance. */
 export function registerAllTools(server: McpServer, ctx: ToolContext): void {
@@ -25,6 +26,7 @@ export function registerAllTools(server: McpServer, ctx: ToolContext): void {
   registerWriteTools(server, ctx);
   registerShareTools(server, ctx);
   registerCommentTools(server, ctx);
+  registerMediaTools(server, ctx);
 }
 
 /**
