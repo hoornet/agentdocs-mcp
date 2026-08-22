@@ -4,6 +4,38 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.10.0 — 2026-08-22
+
+### Added
+- **`upload_image` — agents can finally attach images.** Until now an agent could
+  write a page *about* a screenshot but had no way to include it: the REST API had
+  `POST /api/uploads`, and none of the 18 tools wrapped it. Takes `path` (stdio
+  only — see below), `source_url`, or base64 `data`; returns the URL plus
+  ready-to-paste Markdown. Format is identified from magic bytes rather than the
+  filename, and SVG is refused because the server rejects it as a script-injection
+  vector. Uploads count against the workspace's image storage quota, so an
+  over-quota call surfaces the usual tier-limit message with the upgrade path.
+- **`get_page` gained `include_images`.** The other half of the same problem:
+  `get_page` returns Markdown, so an image on a page reached the reader as
+  `![](/api/uploads/x.png)` — a string it could not see. With `include_images: true`
+  the embedded images come back as MCP image content blocks (max 5). Off by default
+  so ordinary reads stay cheap. Only AgentDocs-hosted `/api/uploads/` URLs are
+  fetched; arbitrary URLs found in page content are deliberately left alone.
+
+### Security
+- **`ToolContext.capabilities.localFiles` gates local file access.** These tool
+  definitions are shared with AgentDocs' backend, which registers them per request
+  on `POST /mcp`. `upload_image`'s `path` argument reads the filesystem of whatever
+  machine the server runs on — correct for stdio, arbitrary file read on the
+  production host if honoured remotely. The stdio entry point sets it true; the
+  remote endpoint sets it false; **an absent `capabilities` object defaults to
+  refusing paths**, so a forgetful caller fails closed. Covered by tests on both
+  sides of the boundary.
+- `source_url` refuses URLs resolving to loopback, private, or link-local
+  addresses (including the cloud metadata endpoint) — on the remote surface an
+  unguarded fetch would be a server-side request forgery primitive inside
+  AgentDocs' own network.
+
 ## 0.9.3 — 2026-08-09
 
 ### Security

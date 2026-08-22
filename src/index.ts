@@ -68,7 +68,9 @@ async function main(): Promise<void> {
   }
 
   const resolver = new Resolver(client, credential.type !== "space", credential.spaceId);
-  const ctx: ToolContext = { client, resolver, credential };
+  // stdio runs on the user's own machine: reading a path they explicitly
+  // named is the point. The remote /mcp surface sets this false.
+  const ctx: ToolContext = { client, resolver, credential, capabilities: { localFiles: true } };
 
   const server = createMcpServer(ctx, VERSION);
 

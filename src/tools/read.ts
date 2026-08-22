@@ -1,7 +1,57 @@
 import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { ToolContext } from "../context.js";
-import { safe, textResult } from "../context.js";
+import { safe, textResult, textWithImages } from "../context.js";
+import type { ImageContent } from "../context.js";
+import type { AgentDocsClient } from "../client.js";
+
+/** Cap on images returned per page: they are large and share the model's context. */
+const MAX_INLINE_IMAGES = 5;
+
+/**
+ * Pull AgentDocs-hosted images out of a page body so they can be returned as
+ * viewable image blocks.
+ *
+ * Only /api/uploads/ URLs are followed. External images are deliberately left
+ * alone: fetching arbitrary URLs named in page content would turn a read into a
+ * server-side request forgery primitive on the remote surface, where this code
+ * runs inside AgentDocs' own backend.
+ */
+async function collectPageImages(
+  client: AgentDocsClient,
+  content: string
+): Promise<{ images: ImageContent[]; notes: string[] }> {
+  const refs = [...content.matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)]
+    .map(m => m[1])
+    .map(u => {
+      const at = u.indexOf("/api/uploads/");
+      return at === -1 ? null : u.slice(at);
+    })
+    .filter((u): u is string => u !== null && /^\/api\/uploads\/[A-Za-z0-9._-]+$/.test(u));
+
+  const unique = [...new Set(refs)];
+  const notes: string[] = [];
+  if (unique.length === 0) {
+    notes.push("No AgentDocs-hosted images found in this page (external image URLs are not fetched).");
+    return { images: [], notes };
+  }
+
+  const take = unique.slice(0, MAX_INLINE_IMAGES);
+  if (unique.length > take.length) {
+    notes.push(`Page references ${unique.length} images; returning the first ${take.length}.`);
+  }
+
+  const images: ImageContent[] = [];
+  for (const ref of take) {
+    try {
+      const { bytes, mimeType } = await client.fetchBinary(ref);
+      images.push({ type: "image", data: bytes.toString("base64"), mimeType });
+    } catch (err) {
+      notes.push(`Could not load ${ref}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+  return { images, notes };
+}
 
 interface PageNode {
   id: string;
@@ -160,7 +210,7 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Get page",
       description:
-        "Read a page including its full Markdown content and current version number. The page carries comment_count / unresolved_comment_count / last_comment_at — if comment_count > 0 there is a discussion; set include_comments to read it. include_children returns the page's child pages (titles + slugs, no content) — useful for 'folder' pages whose own content is empty but which organise sub-pages.",
+        "Read a page including its full Markdown content and current version number. The page carries comment_count / unresolved_comment_count / last_comment_at — if comment_count > 0 there is a discussion; set include_comments to read it. include_children returns the page's child pages (titles + slugs, no content) — useful for 'folder' pages whose own content is empty but which organise sub-pages. include_images returns any images embedded in the page as viewable image blocks, so you can actually SEE a screenshot the page references instead of only its URL.",
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
         include_comments: z
@@ -171,25 +221,36 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
           .boolean()
           .optional()
           .describe("When true, also return the page's immediate child pages (id, title, slug — no content)."),
+        include_images: z
+          .boolean()
+          .optional()
+          .describe(
+            `When true, also return images embedded in the page as image blocks you can view (max ${MAX_INLINE_IMAGES}). Off by default — images are large, so ordinary reads stay cheap.`
+          ),
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    safe(async ({ page, include_comments, include_children }: {
+    safe(async ({ page, include_comments, include_children, include_images }: {
       page: string;
       include_comments?: boolean;
       include_children?: boolean;
+      include_images?: boolean;
     }) => {
       const pageId = await resolver.pageId(page);
       const include = [include_comments && "comments", include_children && "children"]
         .filter(Boolean)
         .join(",");
-      const result = await client.request(
+      const result = await client.request<{ page?: { content?: string } }>(
         "GET",
         `/api/pages/${pageId}`,
         undefined,
         include ? { include } : undefined
       );
-      return textResult(result);
+
+      if (!include_images) return textResult(result);
+
+      const { images, notes } = await collectPageImages(client, result.page?.content ?? "");
+      return textWithImages(notes.length ? { ...result, image_notes: notes } : result, images);
     })
   );
 }
