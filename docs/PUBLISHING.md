@@ -9,7 +9,25 @@ How `agentdocs-mcp` gets published to npm and listed in MCP directories.
    what silently drifted two releases behind and shipped the wrong version in the MCP
    `initialize` handshake through 0.6.0/0.6.1. Fixed in 0.6.2; keep it derived.
 2. Add a `CHANGELOG.md` entry.
-3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push --follow-tags`.
+3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push --follow-tags`, then **create a GitHub
+   release** from that tag with the CHANGELOG section as its notes:
+   ```bash
+   gh release create vX.Y.Z --title "vX.Y.Z — <one-line summary>" --notes-file <changelog-section>
+   ```
+   Tag *and* release: a tag carries no notes, so the changelog stays invisible on GitHub,
+   and update-checkers and some directories key off releases rather than tags. Both were
+   skipped through 0.10.1 and had to be backfilled — when publishing from a merged PR, tag
+   the squash commit.
+
+   > ⚠️ **This repository is public (MIT); releases are public.** Reuse the CHANGELOG text
+   > verbatim rather than writing fresh prose — it has already been reviewed, so a release
+   > cannot introduce a claim the repo does not already make. Never reference the private
+   > AgentDocs application repo, and never describe AgentDocs as self-hostable: it is a
+   > closed-source hosted product, and `agentdocs.eu` is the only instance. `AGENTDOCS_URL`
+   > is an env var of *this package*, not a self-hosting feature — describe it that way.
+   > (A third-party directory listing still carried "point at a self-hosted AgentDocs
+   > instance" long after that wording was removed here; external copies do not get fixed
+   > by fixing the repo.)
 4. **`npm run release`** (= `npm run build && npm publish`), adding `--otp=<code>` if npm
    prompts. Needs the maintainer's npm login + 2FA.
    > ⚠️ **Do not rely on `prepublishOnly` to build.** It is a *lifecycle* hook, and any
