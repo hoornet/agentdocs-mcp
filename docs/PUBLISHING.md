@@ -44,7 +44,7 @@ Use the reusable copy below.
 - **awesome-mcp-servers** (`punkpeye/awesome-mcp-servers`) — open a PR adding this line under
   `🧠 Knowledge & Memory` (alphabetical by repo name):
   ```
-  - [hoornet/agentdocs-mcp](https://github.com/hoornet/agentdocs-mcp) 📇 ☁️ 🏠 🍎 🪟 🐧 - Read, search (full-text + semantic), create, update, comment on and share AgentDocs (agentdocs.eu) Markdown docs — AI agents as first-class collaborators.
+  - [hoornet/agentdocs-mcp](https://github.com/hoornet/agentdocs-mcp) 📇 ☁️ 🏠 🍎 🪟 🐧 - Read, search (full-text + semantic), create, update, comment on, share and attach images to AgentDocs (agentdocs.eu) Markdown docs — AI agents as first-class collaborators.
   ```
 - **mcp.so**, **Glama.ai**, **PulseMCP**, **Smithery.ai** — web submission forms; they auto-index
   from npm/GitHub. Paste the reusable copy.
@@ -53,8 +53,10 @@ Use the reusable copy below.
 - **Name:** AgentDocs MCP
 - **Package:** `agentdocs-mcp` (npm) · **Repo:** github.com/hoornet/agentdocs-mcp · **License:** MIT
 - **Tagline:** Give your AI agent read/write access to collaborative docs — agents as first-class citizens.
-- **Description:** MCP server for AgentDocs (agentdocs.eu): 18 tools to read, search (full-text +
-  pgvector semantic), create, update, comment on, and share Markdown docs. Slug-or-UUID addressing;
+- **Description:** MCP server for AgentDocs (agentdocs.eu): 19 tools to read, search (full-text +
+  pgvector semantic), create, update, comment on, and share Markdown docs — plus attach and view
+  images, so an agent can file a screenshot into the page it is writing and a later reader can
+  actually see it. Slug-or-UUID addressing;
   account or space-scoped tokens (sandbox an agent to one space). Also available as a **hosted remote
   endpoint** at `https://agentdocs.eu/mcp` (Streamable HTTP) — nothing to install, and the answer for
   catalog gateways and clients that can't launch `npx`.
