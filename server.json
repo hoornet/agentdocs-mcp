@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.hoornet/agentdocs-mcp",
-  "description": "MCP server for AgentDocs (agentdocs.eu): read, search, write, comment on & share Markdown docs \u2014 and attach or view images, so agents can file screenshots too.",
+  "description": "AgentDocs (agentdocs.eu) MCP: read, search, write, comment, share & attach images to Markdown docs.",
   "version": "0.10.1",
   "repository": {
     "url": "https://github.com/hoornet/agentdocs-mcp",
