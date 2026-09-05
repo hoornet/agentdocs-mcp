@@ -4,6 +4,24 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.10.2 — 2026-09-05
+
+Dependency-only release; no tool or behaviour changes.
+
+### Security
+- **fast-uri 3.1.5 → 3.1.7** (transitive, runtime) — clears four advisories:
+  SSRF via malformed IPv6 and via repeated hostname, host confusion via
+  percent-encoded scheme normalisation and via skipped IDN canonicalisation.
+- **qs 6.15.2 → 6.16.0** (transitive, runtime) — array-limit bypass via
+  bracket-key comma parsing.
+
+### Changed
+- zod 4.4.3 → 4.5.4, @types/node 26.2.0 → 26.4.1.
+
+`npm audit` is clean (dev and runtime). Published so that clients running
+`npx agentdocs-mcp` — and the AgentDocs backend, which imports this package for
+its remote `/mcp` endpoint — stop carrying the vulnerable versions.
+
 ## 0.10.1 — 2026-08-22
 
 Follow-ups from verifying 0.10.0 against production, and from watching an agent
