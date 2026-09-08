@@ -69,6 +69,9 @@ numbering**. Two things learned the hard way (2026-09-06 → 08):
   Glama will offer 0.10.4 for that build and the two lines match from then on. After that, make
   **exactly one** Glama release per npm release, and only after the build for the release
   commit has passed — never a second "Make Release" for the same version.
+- `glama.json` in the repo root (schema: only `maintainers`, GitHub usernames) is what lets
+  Glama tie the listing to the account; it is outside the npm `files` allowlist, so it never
+  ships in the tarball. Keep it when restructuring.
 - A build that dies before cloning with *"The Glama builder lost its BuildKit session"* is their
   side (their message says so); retry from the failed test's page. The 2026-09-06 attempt was one.
 
