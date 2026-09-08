@@ -3,7 +3,7 @@
 How `agentdocs-mcp` gets published to npm and listed in MCP directories.
 
 ## npm release (every version)
-1. Bump `version` in **`package.json` only**. `src/index.ts` *derives* `VERSION` from
+1. Bump `version` in **`package.json` only** (next release: **0.10.4**, see the Glama section for why 0.10.3 is skipped). `src/index.ts` *derives* `VERSION` from
    `package.json` at runtime (`createRequire(...)("../package.json").version`).
    **Never re-introduce a hardcoded `VERSION` literal** — a hand-maintained copy is exactly
    what silently drifted two releases behind and shipped the wrong version in the MCP
@@ -55,6 +55,22 @@ Listed as **`io.github.hoornet/agentdocs-mcp`** via `server.json` (in repo root)
   it reads `server.json` and authenticates via **GitHub OAuth** to prove the `io.github.hoornet`
   namespace. (Maintainer step — needs the GitHub login.)
 - On each new npm release, bump `version` in `server.json` to match and re-run `mcp-publisher`.
+
+## Glama (`glama.ai/mcp/servers/@hoornet/agentdocs-mcp`, claimed)
+Glama builds the repo itself (Dockerfile in Admin → Dockerfile) and keeps **its own release
+numbering**. Two things learned the hard way (2026-09-06 → 08):
+
+- **"Make Release" auto-increments from Glama's *previous* release, not from `package.json`,
+  and releases can neither be renamed nor deleted — only a higher number is offered.** On
+  2026-08-22 that produced Glama releases 0.10.1 *and* 0.10.2 in one sitting, so when the real
+  0.10.2 (`d97d33b`) was built on 2026-09-08 the only option was **0.10.3**. Glama is therefore
+  one patch ahead of npm.
+- **Realign once, then stay aligned:** publish the next npm release as **0.10.4** (skip 0.10.3).
+  Glama will offer 0.10.4 for that build and the two lines match from then on. After that, make
+  **exactly one** Glama release per npm release, and only after the build for the release
+  commit has passed — never a second "Make Release" for the same version.
+- A build that dies before cloning with *"The Glama builder lost its BuildKit session"* is their
+  side (their message says so); retry from the failed test's page. The 2026-09-06 attempt was one.
 
 ## Other directories (no republish needed — they pull from npm/GitHub)
 Use the reusable copy below.
