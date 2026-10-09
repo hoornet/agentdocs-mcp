@@ -235,6 +235,7 @@ test("tool description tells an agent how to supply bytes it can only see", asyn
 // response with arrayBuffer() BEFORE comparing it to the 5 MB cap, and checked
 // DNS once, then let global fetch resolve the hostname again on its own.
 import { createServer } from "node:http";
+import { createServer as createRawServer } from "node:net";
 import { fetchImage, isPrivateAddress, makeGuardedLookup } from "../dist/tools/media.js";
 
 // net.connect skips `lookup` for IP literals, so the local receiver is addressed
@@ -260,10 +261,11 @@ async function withServer(handler, fn) {
 }
 
 test("isPrivateAddress covers the ranges the old prefix checks missed", () => {
-  for (const ip of ["::ffff:127.0.0.1", "::ffff:10.0.0.1", "100.64.0.1", "0.0.0.1", "224.0.0.1", "192.0.0.1", "255.255.255.255", "::", "fd00::1", "fe80::1"]) {
+  for (const ip of ["::ffff:127.0.0.1", "::ffff:10.0.0.1", "100.64.0.1", "0.0.0.1", "224.0.0.1", "192.0.0.1", "255.255.255.255", "::", "fd00::1", "fe80::1",
+                    "198.18.0.1", "fec0::1", "100::1", "::7f00:1", "64:ff9b::7f00:1", "64:ff9b:1::7f00:1", "2002:7f00:1::", "2001::1"]) {
     assert.equal(isPrivateAddress(ip), true, ip);
   }
-  for (const ip of ["93.184.216.34", "8.8.8.8", "2606:4700::1111"]) {
+  for (const ip of ["93.184.216.34", "8.8.8.8", "2606:4700::1111", "::ffff:8.8.8.8", "2001:db8::1", "2a00:1450:4001::1"]) {
     assert.equal(isPrivateAddress(ip), false, ip);
   }
   assert.equal(isPrivateAddress("not-an-ip"), false);
@@ -315,9 +317,14 @@ test("an undeclared (chunked) body is stopped at the cap, not buffered", async (
     const cap = 256 * 1024;
     await assert.rejects(
       fetchImage(`${base}/stream.png`, { lookup: passthrough, maxBytes: cap, timeoutMs: 5000 }),
-      /larger than 5 MB \(download stopped at the limit\)/
+      /larger than 0\.3 MB \(download stopped at the limit\)/
     );
-    // The receiver was cut off, not drained: nowhere near a 5 MB (or 50 MB) body.
+    // The receiver was cut off, not drained: after the rejection the server
+    // must stop making progress (a mutant that keeps reading past the cap
+    // rejects at the same moment but lets `written` keep climbing).
+    const atRejection = written;
+    await new Promise(r => setTimeout(r, 200));
+    assert.equal(written, atRejection, "server kept writing after the client rejected");
     assert.ok(written < 4 * 1024 * 1024, `server wrote ${written} bytes`);
   });
 });
@@ -348,6 +355,69 @@ test("non-2xx is an error", async () => {
     });
 });
 
+test("a 5 MB body sent as one-byte HTTP chunks is refused, not held as five million Buffers", async () => {
+  // Byte-counting alone accepts this (the total never exceeds the cap), but
+  // one Buffer object per chunk was measured at ~1 GB of heap. Bytes are
+  // copied into one buffer and a pathologically fragmented response is cut.
+  let chunksSent = 0;
+  await withServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "image/png" });
+    const pump = () => {
+      if (res.destroyed || res.writableEnded) return;
+      let ok = true;
+      for (let i = 0; i < 2048 && ok; i++) { ok = res.write("x"); chunksSent++; }
+      if (ok) setImmediate(pump); else res.once("drain", pump);
+    };
+    pump();
+  }, async base => {
+    const before = process.memoryUsage().heapUsed;
+    await assert.rejects(fetchImage(`${base}/frag.png`, { lookup: passthrough, timeoutMs: 10_000 }), /fragmented into too many pieces/);
+    const grown = process.memoryUsage().heapUsed - before;
+    assert.ok(grown < 64 * 1024 * 1024, `heap grew by ${(grown / 1024 / 1024).toFixed(0)} MB`);
+    assert.ok(chunksSent < 2_000_000, `server sent ${chunksSent} chunks before being cut off`);
+  });
+});
+
+test("a 101 Switching Protocols reply does not hang — the deadline still settles", async () => {
+  // Node answers a 101 with no 'upgrade' listener by destroying the socket
+  // and emitting only 'close' — no 'response', no 'error'. A timer that only
+  // calls req.destroy() then does nothing, because the request is already
+  // destroyed, and the promise stays pending forever.
+  const server = createRawServer(sock => {
+    sock.once("data", () => sock.write("HTTP/1.1 101 Switching Protocols\r\nUpgrade: x\r\nConnection: Upgrade\r\n\r\n"));
+  });
+  await new Promise(r => server.listen(0, "127.0.0.1", r));
+  try {
+    const started = Date.now();
+    await assert.rejects(
+      fetchImage(`http://receiver.test:${server.address().port}/x.png`, { lookup: passthrough, timeoutMs: 500 }),
+      /connection closed before a complete response|timed out/
+    );
+    assert.ok(Date.now() - started < 3000, "took too long to settle");
+  } finally {
+    server.close();
+  }
+});
+
+test("the connect-time check is the ONLY resolution — one lookup, refused, nothing connects", async () => {
+  // The old design resolved for the check and then let fetch resolve again;
+  // a TTL-0 record could differ between the two. Now the single lookup the
+  // socket uses is the one that is checked.
+  let calls = 0;
+  const countingBase = (h, o, cb) => { calls++; cb(null, o && o.all ? [{ address: "127.0.0.1", family: 4 }] : "127.0.0.1", 4); };
+  await withServer((req, res) => { res.writeHead(200); res.end(PNG); }, async (base, hits) => {
+    await assert.rejects(fetchImage(`${base}/x.png`, { lookup: makeGuardedLookup(countingBase) }), /private or loopback/);
+    assert.equal(calls, 1);
+    assert.equal(hits.length, 0);
+  });
+});
+
+test("refuses non-HTTP ports and credentials in the URL", async () => {
+  await assert.rejects(fetchImage("http://example.com:25/x.png"), /port 25 is not an HTTP port/);
+  await assert.rejects(fetchImage("http://example.com:6667/x.png"), /port 6667/);
+  await assert.rejects(fetchImage("http://user:pw@example.com/x.png"), /must not contain credentials/);
+});
+
 test("with the REAL guard a loopback hostname is refused before any bytes move", async () => {
   await withServer((req, res) => { res.writeHead(200); res.end(PNG); },
     async (base, hits, port) => {
@@ -357,7 +427,10 @@ test("with the REAL guard a loopback hostname is refused before any bytes move",
 });
 
 test("blocked IP literals are refused without a lookup, in every spelling", async () => {
-  for (const host of ["127.0.0.1", "[::1]", "169.254.169.254", "[::ffff:127.0.0.1]", "2130706433", "0x7f000001"]) {
-    await assert.rejects(fetchImage(`http://${host}/x.png`, { timeoutMs: 2000 }), /private or loopback/, host);
+  let lookups = 0;
+  const spy = (h, o, cb) => { lookups++; cb(new Error("lookup must not be called for a literal")); };
+  for (const host of ["127.0.0.1", "[::1]", "169.254.169.254", "[::ffff:127.0.0.1]", "2130706433", "0x7f000001", "[64:ff9b::7f00:1]", "[::7f00:1]", "100.64.0.1"]) {
+    await assert.rejects(fetchImage(`http://${host}/x.png`, { lookup: spy, timeoutMs: 2000 }), /private or loopback/, host);
   }
+  assert.equal(lookups, 0);
 });

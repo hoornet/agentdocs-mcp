@@ -17,7 +17,12 @@ see `docs/PUBLISHING.md`.)
   AgentDocs backend on `POST /mcp`, i.e. in the one process serving every
   tenant. The body is now read chunk by chunk and the connection is cut at the
   cap; a declared `Content-Length` over the cap is refused before any body is
-  read; the 20 s deadline covers the body, not just the headers.
+  read. Bytes are copied into one preallocated buffer rather than kept as one
+  Buffer per chunk — a 5 MB body sent as one-byte HTTP chunks had been measured
+  at ~1 GB of heap — and a response fragmented beyond anything an image
+  transfer produces is refused outright. A reply that ends without a response
+  (a `101 Switching Protocols`, for instance) now fails promptly instead of
+  leaving the tool call pending.
 - **The private-address check now runs at connect time.** Previously the
   hostname was resolved and checked, and then global `fetch` resolved it again
   on its own — a TTL-0 record could answer public for the check and private for
@@ -26,7 +31,14 @@ see `docs/PUBLISHING.md`.)
   to use, and IP literals are checked directly since `lookup` is skipped for
   them. The range list moved to `net.BlockList` and now also covers
   IPv4-mapped IPv6 spellings (`::ffff:127.0.0.1`), carrier-grade NAT
-  (100.64/10), `0.0.0.0/8`, `192.0.0.0/24`, multicast and reserved ranges.
+  (100.64/10), `0.0.0.0/8`, `192.0.0.0/24`, `198.18.0.0/15`, multicast and
+  reserved ranges, plus the IPv4-embedding IPv6 transition prefixes (NAT64,
+  6to4, Teredo, IPv4-compatible), site-local and the discard prefix.
+- **Ports outside HTTP and credentials in the URL are refused.** `fetch()` did
+  both implicitly (its "bad port" list; it rejects `user:pass@`); the direct
+  `http.request` path does neither, so they are checked explicitly. Connection
+  errors are reported generically so the tool cannot be used to probe ports
+  from the server's address.
 
 Found by an external static scan of the AgentDocs backend on 2026-10-08, which
 fixed the same two patterns in the backend's webhook delivery the same day.
@@ -35,6 +47,9 @@ fixed the same two patterns in the backend's webhook delivery the same day.
 - Redirects on `source_url` still are not followed; the error now says so
   instead of surfacing fetch's generic `TypeError`.
 - Dropped the pre-connect DNS round trip — the connect-time check supersedes it.
+- Responses are requested uncompressed (`Accept-Encoding: identity`); an image a
+  server will only serve gzip-encoded now fails the format check rather than
+  being decompressed. Image formats are already compressed, so this is rare.
 
 ## 0.10.2 — 2026-09-05
 
