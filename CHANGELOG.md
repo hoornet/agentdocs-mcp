@@ -4,6 +4,38 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.10.4 — 2026-10-09
+
+(0.10.3 is skipped deliberately — the Glama listing already consumed that number;
+see `docs/PUBLISHING.md`.)
+
+### Security
+- **`upload_image` `source_url` no longer buffers an unbounded response.** The
+  fetch read the whole body with `arrayBuffer()` and only then compared it to
+  the 5 MB cap, so a URL pointing at a receiver that streams gigabytes was held
+  entirely in memory first. On the remote surface this code runs *inside* the
+  AgentDocs backend on `POST /mcp`, i.e. in the one process serving every
+  tenant. The body is now read chunk by chunk and the connection is cut at the
+  cap; a declared `Content-Length` over the cap is refused before any body is
+  read; the 20 s deadline covers the body, not just the headers.
+- **The private-address check now runs at connect time.** Previously the
+  hostname was resolved and checked, and then global `fetch` resolved it again
+  on its own — a TTL-0 record could answer public for the check and private for
+  the connection (DNS rebinding). The request now goes through `http.request`
+  with a guarded `lookup` that refuses the address the socket is actually about
+  to use, and IP literals are checked directly since `lookup` is skipped for
+  them. The range list moved to `net.BlockList` and now also covers
+  IPv4-mapped IPv6 spellings (`::ffff:127.0.0.1`), carrier-grade NAT
+  (100.64/10), `0.0.0.0/8`, `192.0.0.0/24`, multicast and reserved ranges.
+
+Found by an external static scan of the AgentDocs backend on 2026-10-08, which
+fixed the same two patterns in the backend's webhook delivery the same day.
+
+### Changed
+- Redirects on `source_url` still are not followed; the error now says so
+  instead of surfacing fetch's generic `TypeError`.
+- Dropped the pre-connect DNS round trip — the connect-time check supersedes it.
+
 ## 0.10.2 — 2026-09-05
 
 Dependency-only release; no tool or behaviour changes.

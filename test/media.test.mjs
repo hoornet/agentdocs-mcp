@@ -227,3 +227,137 @@ test("tool description tells an agent how to supply bytes it can only see", asyn
   assert.match(t.inputSchema.properties.path.description, /NOT SUPPORTED/);
 });
 
+
+// --- source_url transport: bounded read + connect-time address check -------
+//
+// Found by an external static scan of the AgentDocs backend (2026-10-08), where
+// this code runs in-process on POST /mcp: the old fetchImage buffered the whole
+// response with arrayBuffer() BEFORE comparing it to the 5 MB cap, and checked
+// DNS once, then let global fetch resolve the hostname again on its own.
+import { createServer } from "node:http";
+import { fetchImage, isPrivateAddress, makeGuardedLookup } from "../dist/tools/media.js";
+
+// net.connect skips `lookup` for IP literals, so the local receiver is addressed
+// by NAME and this injected lookup answers for it — standing in for "the DNS
+// check was satisfied". Production never passes a lookup.
+const passthrough = (hostname, options, cb) => {
+  if (typeof options === "function") { cb = options; options = {}; }
+  if (options && options.all) return cb(null, [{ address: "127.0.0.1", family: 4 }]);
+  cb(null, "127.0.0.1", 4);
+};
+
+async function withServer(handler, fn) {
+  const hits = [];
+  const server = createServer((req, res) => { hits.push(req.url); handler(req, res); });
+  await new Promise(r => server.listen(0, "127.0.0.1", r));
+  const port = server.address().port;
+  try {
+    return await fn(`http://receiver.test:${port}`, hits, port);
+  } finally {
+    server.closeAllConnections?.();
+    await new Promise(r => server.close(r));
+  }
+}
+
+test("isPrivateAddress covers the ranges the old prefix checks missed", () => {
+  for (const ip of ["::ffff:127.0.0.1", "::ffff:10.0.0.1", "100.64.0.1", "0.0.0.1", "224.0.0.1", "192.0.0.1", "255.255.255.255", "::", "fd00::1", "fe80::1"]) {
+    assert.equal(isPrivateAddress(ip), true, ip);
+  }
+  for (const ip of ["93.184.216.34", "8.8.8.8", "2606:4700::1111"]) {
+    assert.equal(isPrivateAddress(ip), false, ip);
+  }
+  assert.equal(isPrivateAddress("not-an-ip"), false);
+});
+
+test("the guarded lookup refuses a private answer, even one among public ones", async () => {
+  const lookup = makeGuardedLookup((h, o, cb) =>
+    cb(null, [{ address: "93.184.216.34", family: 4 }, { address: "10.9.9.9", family: 4 }]));
+  await assert.rejects(
+    new Promise((res, rej) => lookup("x.test", { all: true }, (e, a) => (e ? rej(e) : res(a)))),
+    /private or loopback/
+  );
+  const ok = makeGuardedLookup((h, o, cb) => cb(null, "93.184.216.34", 4));
+  const got = await new Promise((res, rej) => ok("x.test", {}, (e, a, f) => (e ? rej(e) : res([a, f]))));
+  assert.deepEqual(got, ["93.184.216.34", 4]);
+});
+
+test("fetchImage returns the bytes of a small image", async () => {
+  await withServer((req, res) => { res.writeHead(200, { "Content-Type": "image/png" }); res.end(PNG); },
+    async base => {
+      const bytes = await fetchImage(`${base}/shot.png`, { lookup: passthrough });
+      assert.equal(Buffer.compare(bytes, PNG), 0);
+    });
+});
+
+test("a declared Content-Length over the cap is refused before any body is read", async () => {
+  await withServer((req, res) => {
+    // Headers only, never a body: if the client waited for the body it would
+    // hit the (short) timeout instead of the size error.
+    res.writeHead(200, { "Content-Type": "image/png", "Content-Length": 6 * 1024 * 1024 });
+    res.flushHeaders();
+  }, async base => {
+    await assert.rejects(fetchImage(`${base}/big.png`, { lookup: passthrough, timeoutMs: 2000 }), /6\.0 MB; the limit is 5 MB/);
+  });
+});
+
+test("an undeclared (chunked) body is stopped at the cap, not buffered", async () => {
+  let written = 0;
+  await withServer((req, res) => {
+    res.writeHead(200, { "Content-Type": "image/png" }); // no Content-Length → chunked
+    const chunk = Buffer.alloc(64 * 1024, 0x78);
+    const pump = () => {
+      if (res.destroyed || res.writableEnded) return;
+      written += chunk.length;
+      if (res.write(chunk)) setImmediate(pump); else res.once("drain", pump);
+    };
+    pump();
+  }, async base => {
+    const cap = 256 * 1024;
+    await assert.rejects(
+      fetchImage(`${base}/stream.png`, { lookup: passthrough, maxBytes: cap, timeoutMs: 5000 }),
+      /larger than 5 MB \(download stopped at the limit\)/
+    );
+    // The receiver was cut off, not drained: nowhere near a 5 MB (or 50 MB) body.
+    assert.ok(written < 4 * 1024 * 1024, `server wrote ${written} bytes`);
+  });
+});
+
+test("the deadline keeps running after headers — a stalled body times out", async () => {
+  let stalled;
+  await withServer((req, res) => { res.writeHead(200); res.write("partial"); stalled = res; },
+    async base => {
+      await assert.rejects(fetchImage(`${base}/slow.png`, { lookup: passthrough, timeoutMs: 300 }), /timed out/);
+      stalled?.destroy();
+    });
+});
+
+test("redirects are not followed", async () => {
+  await withServer((req, res) => {
+    if (req.url === "/start.png") { res.writeHead(302, { Location: "/followed.png" }); return res.end(); }
+    res.writeHead(200); res.end(PNG);
+  }, async (base, hits) => {
+    await assert.rejects(fetchImage(`${base}/start.png`, { lookup: passthrough }), /redirects are not followed/);
+    assert.deepEqual(hits, ["/start.png"]);
+  });
+});
+
+test("non-2xx is an error", async () => {
+  await withServer((req, res) => { res.writeHead(404); res.end("nope"); },
+    async base => {
+      await assert.rejects(fetchImage(`${base}/missing.png`, { lookup: passthrough }), /HTTP 404/);
+    });
+});
+
+test("with the REAL guard a loopback hostname is refused before any bytes move", async () => {
+  await withServer((req, res) => { res.writeHead(200); res.end(PNG); },
+    async (base, hits, port) => {
+      await assert.rejects(fetchImage(`http://localhost:${port}/shot.png`, { timeoutMs: 2000 }), /private or loopback/);
+      assert.equal(hits.length, 0);
+    });
+});
+
+test("blocked IP literals are refused without a lookup, in every spelling", async () => {
+  for (const host of ["127.0.0.1", "[::1]", "169.254.169.254", "[::ffff:127.0.0.1]", "2130706433", "0x7f000001"]) {
+    await assert.rejects(fetchImage(`http://${host}/x.png`, { timeoutMs: 2000 }), /private or loopback/, host);
+  }
+});
