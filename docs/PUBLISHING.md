@@ -65,10 +65,13 @@ numbering**. Two things learned the hard way (2026-09-06 → 08):
   2026-08-22 that produced Glama releases 0.10.1 *and* 0.10.2 in one sitting, so when the real
   0.10.2 (`d97d33b`) was built on 2026-09-08 the only option was **0.10.3**. Glama is therefore
   one patch ahead of npm.
-- **Realigned with 0.10.4 (npm, 2026-10-09; 0.10.3 was skipped for this reason).** From here on
-  make **exactly one** Glama release per npm release, and only after the build for the release
-  commit has passed — never a second "Make Release" for the same version. Glama's "Make Release"
-  for the `3c20df0` build should be numbered 0.10.4 (what it offers after 0.10.3).
+- **Realigned with 0.10.4 (npm, 2026-10-09; 0.10.3 was skipped for this reason) — and that
+  release appeared on Glama by itself.** After the v0.10.4 tag + GitHub release were pushed, the
+  admin Releases page already showed a 0.10.4 build and release with no "Make Release" click
+  (observed by Jure, 2026-10-10). So the current procedure is: push the tag and GitHub release,
+  then **check** the admin Releases page before touching "Make Release" — clicking it when a
+  release already exists is exactly how the numbering drifted in August. Only make one by hand
+  if the automatic one is missing after the build has passed.
 - `glama.json` in the repo root (schema: only `maintainers`, GitHub usernames) is what lets
   Glama tie the listing to the account; it is outside the npm `files` allowlist, so it never
   ships in the tarball. Keep it when restructuring.
