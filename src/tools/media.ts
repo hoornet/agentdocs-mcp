@@ -257,7 +257,10 @@ export function fetchImage(rawUrl: string, opts: FetchImageOptions = {}): Promis
 
       // One buffer, sized to the declared length when known, grown only as far
       // as the cap. Chunks are COPIED in and dropped — see MAX_BODY_EVENTS.
-      let buf = Buffer.allocUnsafe(hasDeclared ? declared : Math.min(64 * 1024, maxBytes));
+      // `declared` is already ≤ maxBytes here (rejected above otherwise); the
+      // Math.min restates that bound at the allocation so it cannot drift apart
+      // from the check, and so static analysis can see it (CodeQL #4).
+      let buf = Buffer.allocUnsafe(Math.min(hasDeclared ? declared : 64 * 1024, maxBytes));
       let received = 0;
       let events = 0;
       res.on("data", (chunk: Buffer) => {
