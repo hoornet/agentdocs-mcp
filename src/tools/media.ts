@@ -255,9 +255,13 @@ export function fetchImage(rawUrl: string, opts: FetchImageOptions = {}): Promis
         return fail(tooBig(declared));
       }
 
-      // One buffer, sized to the declared length when known, grown only as far
-      // as the cap. Chunks are COPIED in and dropped — see MAX_BODY_EVENTS.
-      let buf = Buffer.allocUnsafe(hasDeclared ? declared : Math.min(64 * 1024, maxBytes));
+      // One buffer, started at a fixed size and grown geometrically up to the
+      // cap. Chunks are COPIED in and dropped — see MAX_BODY_EVENTS. The
+      // declared Content-Length is deliberately NOT used to size it: it only
+      // gates the request above, so no attacker-supplied number ever reaches
+      // an allocation (CodeQL js/resource-exhaustion). Growing to 5 MB costs
+      // seven copies, which is nothing next to the download itself.
+      let buf = Buffer.allocUnsafe(Math.min(64 * 1024, maxBytes));
       let received = 0;
       let events = 0;
       res.on("data", (chunk: Buffer) => {
