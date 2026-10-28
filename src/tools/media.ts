@@ -385,6 +385,9 @@ export function registerMediaTools(server: McpServer, ctx: ToolContext): void {
               "Pass the image as base64 via `data`, or host it and pass `source_url`."
           );
         }
+        if (path.split(/[/\\]/).some(s => s === "..")) {
+          throw new Error("Invalid file path");
+        }
         bytes = await readFile(path);
         if (bytes.length > MAX_BYTES) {
           throw new Error(`Image is ${(bytes.length / 1024 / 1024).toFixed(1)} MB; the limit is 5 MB.`);
