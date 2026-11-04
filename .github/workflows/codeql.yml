@@ -26,6 +26,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false # analyze uploads SARIF with its own token input
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

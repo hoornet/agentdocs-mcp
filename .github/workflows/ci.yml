@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false # nothing here pushes; don't leave GITHUB_TOKEN on the runner
 
       - uses: actions/setup-node@v7
         with:

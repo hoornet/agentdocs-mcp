@@ -7,7 +7,7 @@
 // These tests pin that boundary in both directions.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { writeFileSync, mkdtempSync } from "node:fs";
+import { writeFileSync, mkdtempSync, truncateSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -72,6 +72,50 @@ test("stdio surface (localFiles: true) uploads a file from a path", async () => 
   assert.equal(Buffer.compare(uploads[0].file.bytes, PNG), 0);
   assert.match(textOf(result), /!\[/); // returns embeddable markdown
 });
+
+// The path is checked by fstat BEFORE any byte is read. readFile() buffered the
+// whole file first and only then compared it to the cap, so a path at a huge file
+// (or at /dev/zero, which never ends) was read into memory before being refused.
+test("a path over the cap is refused from its size and uploads nothing", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "agentdocs-media-"));
+  const file = join(dir, "huge.png");
+  writeFileSync(file, PNG);
+  truncateSync(file, 6 * 1024 * 1024); // sparse: 6 MB by stat, nothing on disk
+
+  const { ctx, uploads } = makeCtx({ localFiles: true });
+  const { client } = await connect(ctx);
+  const result = await client.callTool({ name: "upload_image", arguments: { path: file } });
+
+  assert.ok(result.isError);
+  assert.match(textOf(result), /6\.0 MB; the limit is 5 MB/);
+  assert.equal(uploads.length, 0);
+});
+
+test("a path that is not a regular file is refused before it is read", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "agentdocs-media-"));
+
+  const { ctx, uploads } = makeCtx({ localFiles: true });
+  const { client } = await connect(ctx);
+  const result = await client.callTool({ name: "upload_image", arguments: { path: dir } });
+
+  assert.ok(result.isError);
+  assert.match(textOf(result), /not a regular file/);
+  assert.equal(uploads.length, 0);
+});
+
+test(
+  "/dev/zero is refused at once instead of being read forever",
+  { skip: !existsSync("/dev/zero") && "no /dev/zero on this platform", timeout: 5_000 },
+  async () => {
+    const { ctx, uploads } = makeCtx({ localFiles: true });
+    const { client } = await connect(ctx);
+    const result = await client.callTool({ name: "upload_image", arguments: { path: "/dev/zero" } });
+
+    assert.ok(result.isError);
+    assert.match(textOf(result), /not a regular file/);
+    assert.equal(uploads.length, 0);
+  }
+);
 
 test("remote surface (localFiles: false) REFUSES a path and uploads nothing", async () => {
   const { ctx, uploads } = makeCtx({ localFiles: false });
