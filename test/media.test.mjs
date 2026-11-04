@@ -415,23 +415,47 @@ test("a 5 MB body sent as one-byte HTTP chunks is refused, not held as five mill
   // Byte-counting alone accepts this (the total never exceeds the cap), but
   // one Buffer object per chunk was measured at ~1 GB of heap. Bytes are
   // copied into one buffer and a pathologically fragmented response is cut.
+  //
+  // The chunked framing is written by hand over raw TCP. node:http's server
+  // can't produce this input on Node 24+: it merges res.write() calls made in
+  // the same tick into one chunk (2048 one-byte writes go out as one
+  // 2048-byte chunk), so the client never sees one-byte chunks. The client
+  // still emits one 'data' event per chunk on the wire, so the cap still
+  // applies and only the fixture needed changing.
+  const LIMIT = 5 * 1024 * 1024; // exactly the cap: only the event limit can refuse it
+  const BATCH = 2048;
+  const frames = Buffer.from("1\r\nx\r\n".repeat(BATCH));
   let chunksSent = 0;
-  await withServer((req, res) => {
-    res.writeHead(200, { "Content-Type": "image/png" });
-    const pump = () => {
-      if (res.destroyed || res.writableEnded) return;
-      let ok = true;
-      for (let i = 0; i < 2048 && ok; i++) { ok = res.write("x"); chunksSent++; }
-      if (ok) setImmediate(pump); else res.once("drain", pump);
-    };
-    pump();
-  }, async base => {
+  const sockets = new Set();
+  const server = createRawServer(sock => {
+    sockets.add(sock);
+    sock.on("error", () => {}); // the client hanging up mid-body is the expected outcome
+    sock.once("data", () => {
+      sock.write("HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nTransfer-Encoding: chunked\r\n\r\n");
+      const pump = () => {
+        while (!sock.destroyed && chunksSent < LIMIT) {
+          chunksSent += BATCH;
+          if (!sock.write(frames)) return sock.once("drain", pump);
+        }
+        if (!sock.destroyed) sock.end("0\r\n\r\n");
+      };
+      pump();
+    });
+  });
+  await new Promise(r => server.listen(0, "127.0.0.1", r));
+  try {
     const before = process.memoryUsage().heapUsed;
-    await assert.rejects(fetchImage(`${base}/frag.png`, { lookup: passthrough, timeoutMs: 10_000 }), /fragmented into too many pieces/);
+    await assert.rejects(
+      fetchImage(`http://receiver.test:${server.address().port}/frag.png`, { lookup: passthrough, timeoutMs: 10_000 }),
+      /fragmented into too many pieces/
+    );
     const grown = process.memoryUsage().heapUsed - before;
     assert.ok(grown < 64 * 1024 * 1024, `heap grew by ${(grown / 1024 / 1024).toFixed(0)} MB`);
     assert.ok(chunksSent < 2_000_000, `server sent ${chunksSent} chunks before being cut off`);
-  });
+  } finally {
+    for (const s of sockets) s.destroy();
+    await new Promise(r => server.close(r));
+  }
 });
 
 test("a 101 Switching Protocols reply does not hang — the deadline still settles", async () => {
