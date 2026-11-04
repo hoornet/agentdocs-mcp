@@ -20,6 +20,12 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 ### Changed
 - CI and CodeQL checkouts set `persist-credentials: false`, so `GITHUB_TOKEN` is
   not left in the runner's git config for later steps (neither workflow pushes).
+- CI runs the unit tests on Node 20, 22, 24 and 26 instead of 20 only. That
+  surfaced a test that failed on 24 and 26: from Node 24, `node:http`'s server
+  merges writes made in the same tick into one chunk, so the "one-byte HTTP
+  chunks" test was no longer sending one-byte chunks. It now writes the chunked
+  framing over raw TCP. `fetchImage` itself was unaffected: the client still
+  emits one event per chunk on every version, so its event cap still applies.
 
 ## 0.10.4 — 2026-10-09
 
