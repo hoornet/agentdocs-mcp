@@ -7,7 +7,7 @@
 // These tests pin that boundary in both directions.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { writeFileSync, mkdtempSync, truncateSync, existsSync } from "node:fs";
+import { writeFileSync, mkdtempSync, truncateSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -76,20 +76,30 @@ test("stdio surface (localFiles: true) uploads a file from a path", async () => 
 // The path is checked by fstat BEFORE any byte is read. readFile() buffered the
 // whole file first and only then compared it to the cap, so a path at a huge file
 // (or at /dev/zero, which never ends) was read into memory before being refused.
-test("a path over the cap is refused from its size and uploads nothing", async () => {
-  const dir = mkdtempSync(join(tmpdir(), "agentdocs-media-"));
-  const file = join(dir, "huge.png");
-  writeFileSync(file, PNG);
-  truncateSync(file, 6 * 1024 * 1024); // sparse: 6 MB by stat, nothing on disk
+// The 3 GiB case is what pins the mechanism: readFile() refuses anything over
+// 2 GiB with its own ERR_FS_FILE_TOO_LARGE, so if a whole-file read ever comes
+// back, this test fails on the message instead of staying green. Both files are
+// sparse — the size exists only in the inode, nothing is written to disk.
+for (const [label, size, shown] of [
+  ["6 MB", 6 * 1024 * 1024, "6.0"],
+  ["3 GiB", 3 * 1024 * 1024 * 1024, "3072.0"],
+]) {
+  test(`a ${label} path is refused from its size and uploads nothing`, async t => {
+    const dir = mkdtempSync(join(tmpdir(), "agentdocs-media-"));
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const file = join(dir, "huge.png");
+    writeFileSync(file, PNG);
+    truncateSync(file, size);
 
-  const { ctx, uploads } = makeCtx({ localFiles: true });
-  const { client } = await connect(ctx);
-  const result = await client.callTool({ name: "upload_image", arguments: { path: file } });
+    const { ctx, uploads } = makeCtx({ localFiles: true });
+    const { client } = await connect(ctx);
+    const result = await client.callTool({ name: "upload_image", arguments: { path: file } });
 
-  assert.ok(result.isError);
-  assert.match(textOf(result), /6\.0 MB; the limit is 5 MB/);
-  assert.equal(uploads.length, 0);
-});
+    assert.ok(result.isError);
+    assert.equal(textOf(result), `Image is ${shown} MB; the limit is 5 MB.`);
+    assert.equal(uploads.length, 0);
+  });
+}
 
 test("a path that is not a regular file is refused before it is read", async () => {
   const dir = mkdtempSync(join(tmpdir(), "agentdocs-media-"));
