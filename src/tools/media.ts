@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { readFile } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { open } from "node:fs/promises";
 import { lookup as dnsLookup } from "node:dns";
 import { request as httpRequest, type IncomingMessage } from "node:http";
 import { request as httpsRequest } from "node:https";
@@ -39,6 +40,43 @@ function sniffImage(bytes: Buffer): { mime: string; ext: string } {
     );
   }
   return { mime: hit.mime, ext: hit.ext };
+}
+
+/**
+ * Read an image from a local path (stdio surface only — see ToolCapabilities).
+ *
+ * The size is checked BEFORE any byte is read. readFile() buffered the whole
+ * file and only then compared it to the cap, so a path at a multi-gigabyte file
+ * — or at /dev/zero, which never ends — was read into memory first. Here the
+ * descriptor is opened non-blocking (a FIFO cannot hang the call waiting for a
+ * writer; regular files ignore the flag), fstat on that same descriptor
+ * requires a regular file under the cap (no window to swap the path), and the
+ * read is bounded to the size fstat reported plus one byte, so a file that
+ * grows after the check is caught instead of read past the cap.
+ */
+async function readLocalImage(path: string): Promise<Buffer> {
+  // O_NONBLOCK is not defined on Windows; 0 leaves the flags unchanged there.
+  const fh = await open(path, fsConstants.O_RDONLY | (fsConstants.O_NONBLOCK ?? 0));
+  try {
+    const info = await fh.stat();
+    if (!info.isFile()) {
+      throw new Error(`${path} is not a regular file. Pass the path of a PNG, JPEG, GIF or WebP image.`);
+    }
+    if (info.size > MAX_BYTES) {
+      throw new Error(`Image is ${(info.size / 1024 / 1024).toFixed(1)} MB; the limit is 5 MB.`);
+    }
+    const buf = Buffer.alloc(info.size + 1);
+    let total = 0;
+    while (total < buf.length) {
+      const { bytesRead } = await fh.read(buf, total, buf.length - total, total);
+      if (bytesRead === 0) break;
+      total += bytesRead;
+    }
+    if (total > info.size) throw new Error(`${path} changed while it was being read; try again.`);
+    return buf.subarray(0, total);
+  } finally {
+    await fh.close();
+  }
 }
 
 // Address ranges source_url must never reach. net.BlockList does the subnet
@@ -385,10 +423,7 @@ export function registerMediaTools(server: McpServer, ctx: ToolContext): void {
               "Pass the image as base64 via `data`, or host it and pass `source_url`."
           );
         }
-        bytes = await readFile(path);
-        if (bytes.length > MAX_BYTES) {
-          throw new Error(`Image is ${(bytes.length / 1024 / 1024).toFixed(1)} MB; the limit is 5 MB.`);
-        }
+        bytes = await readLocalImage(path);
       } else if (source_url !== undefined && source_url !== "") {
         bytes = await fetchImage(source_url);
       } else {

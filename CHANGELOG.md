@@ -4,6 +4,23 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## 0.10.5 — 2026-11-04
+
+### Fixed
+- **`upload_image` `path` checks the file before reading it.** The path was read
+  whole with `readFile()` and only then compared to the 5 MB cap, so a path at a
+  multi-gigabyte file was buffered in memory first, and `/dev/zero` (a device
+  that never reaches end of file) was read until the process ran out of memory.
+  The file is now opened non-blocking and `fstat`ed on the same descriptor: a
+  directory, device or FIFO is refused as "not a regular file", a file over the
+  cap is refused from its size, and the read is bounded to that size, so a file
+  that grows during the read is refused rather than read past the cap. This only
+  affects the stdio binary; the remote surface never reads paths.
+
+### Changed
+- CI and CodeQL checkouts set `persist-credentials: false`, so `GITHUB_TOKEN` is
+  not left in the runner's git config for later steps (neither workflow pushes).
+
 ## 0.10.4 — 2026-10-09
 
 (0.10.3 is skipped deliberately — the Glama listing already consumed that number;
