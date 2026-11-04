@@ -80,11 +80,13 @@ test("stdio surface (localFiles: true) uploads a file from a path", async () => 
 // 2 GiB with its own ERR_FS_FILE_TOO_LARGE, so if a whole-file read ever comes
 // back, this test fails on the message instead of staying green. Both files are
 // sparse — the size exists only in the inode, nothing is written to disk.
-for (const [label, size, shown] of [
-  ["6 MB", 6 * 1024 * 1024, "6.0"],
-  ["3 GiB", 3 * 1024 * 1024 * 1024, "3072.0"],
+// NTFS does not make a file sparse on truncate — it reserves real clusters — so
+// the 3 GiB case is skipped on Windows rather than taking 3 GiB of disk there.
+for (const [label, size, shown, skip] of [
+  ["6 MB", 6 * 1024 * 1024, "6.0", false],
+  ["3 GiB", 3 * 1024 * 1024 * 1024, "3072.0", process.platform === "win32" && "truncate is not sparse on NTFS"],
 ]) {
-  test(`a ${label} path is refused from its size and uploads nothing`, async t => {
+  test(`a ${label} path is refused from its size and uploads nothing`, { skip }, async t => {
     const dir = mkdtempSync(join(tmpdir(), "agentdocs-media-"));
     t.after(() => rmSync(dir, { recursive: true, force: true }));
     const file = join(dir, "huge.png");
