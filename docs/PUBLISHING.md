@@ -44,6 +44,17 @@ How `agentdocs-mcp` gets published to npm and listed in MCP directories.
    published tarballs, so you cannot check staleness from a downloaded `.tgz`.
 6. Cold-verify: `npx -y agentdocs-mcp@X.Y.Z` boots and prints the version banner — confirm the
    banner shows **X.Y.Z**, which is the end-to-end check that the build was fresh.
+   - **Run it from outside this repo** (`cd /tmp` first). Inside it, the local `package.json` is
+     `agentdocs-mcp` at X.Y.Z, which is exactly the spec being asked for, so npm treats the
+     project as the package and never queries the registry. It then looks for the bin in
+     `./node_modules/.bin` and fails with `agentdocs-mcp: command not found` (seen on 0.10.5).
+     An older version (`@0.10.4`) does not match the local project and resolves normally,
+     which is why this only bites right after a release.
+   - **Expect a delay after publishing.** `npm publish` can print `+ agentdocs-mcp@X.Y.Z` together with
+     "Your package is being processed and may take a few minutes to become available"; until it
+     is, `npm view agentdocs-mcp@X.Y.Z` returns E404 and `latest` still names the old version.
+     Wait for `npm view agentdocs-mcp version` to show X.Y.Z before cold-verifying, and before
+     `mcp-publisher` (the registry validates against the published npm package).
 
 ## Official MCP registry (`modelcontextprotocol/registry`)
 Listed as **`io.github.hoornet/agentdocs-mcp`** via `server.json` (in repo root).
