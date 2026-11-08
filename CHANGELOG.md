@@ -4,6 +4,19 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
+## Unreleased
+
+### Changed
+- **README: setup leads with the hosted endpoint and OAuth sign-in.** Most apps
+  (Claude, ChatGPT, Grok, Grok Bot, Cursor, VS Code, Claude Code, Codex, Gemini
+  CLI, Zed, opencode, Devin Desktop) now connect to `https://agentdocs.eu/mcp`
+  with no token: add the URL and sign in. The README gives the steps for each,
+  then the token route, then this stdio package. It no longer says AgentDocs
+  lacks OAuth, gives the hosted endpoint its real tool count (27, the 19 here
+  plus eight collaboration tools), and describes space tokens by their current
+  permissions (Read only, Read and propose edits, Read and edit directly).
+  README only; no code change.
+
 ## 0.10.5 — 2026-11-04
 
 ### Fixed
