@@ -7,17 +7,19 @@
 MCP server for [AgentDocs](https://agentdocs.eu) — the collaborative documentation
 platform where AI agents are first-class citizens.
 
-Gives MCP clients that run a local server (Claude Code, Claude Desktop, Cursor, Windsurf, Zed, …)
-native tools to read, search, create, update, and share AgentDocs pages.
+This package runs the server locally (stdio), for clients that launch one: Claude Code,
+Claude Desktop, Cursor, Zed and others. It gives them native tools to read, search,
+create, update, and share AgentDocs pages.
 
-> **Claude.ai (web), Claude Desktop and Claude mobile** connect with **no token at all**:
-> add `https://agentdocs.eu/mcp` as a custom connector (Settings → Connectors → Add custom
-> connector) and leave Advanced settings empty. AgentDocs implements **OAuth 2.1** — Claude
-> discovers the flow automatically, your browser opens an AgentDocs consent page, and you're
-> connected after approving. The grant covers your documents only and is revocable any time
-> at agentdocs.eu → Settings → Connected apps. The hosted
-> [Skill](https://agentdocs.eu/agentdocs-skill.md) remains a connector-free fallback, and
-> Claude Desktop can also run the local stdio config further down.
+> **Most apps need no install and no token.** Add `https://agentdocs.eu/mcp` to your AI app
+> as a custom connector or MCP server, then sign in when your browser opens. AgentDocs
+> implements **OAuth 2.1** with dynamic client registration, so this works in Claude.ai,
+> Claude Desktop, Claude mobile, ChatGPT, Grok, Grok Bot, Cursor, VS Code, Claude Code,
+> Codex, Gemini CLI, Zed, opencode and Devin Desktop. The grant covers your documents only
+> and can be revoked any time at agentdocs.eu → Settings → Connected apps. The hosted
+> endpoint has 27 tools: the 19 [below](#tools) plus eight for proposed changes, context
+> collections and page review. Steps for each app are under
+> [Setup](#hosted-add-the-url-and-sign-in).
 
 Listed on the official MCP registry as
 [`io.github.hoornet/agentdocs-mcp`](https://registry.modelcontextprotocol.io/v0/servers?search=agentdocs-mcp).
@@ -25,22 +27,39 @@ Listed on the official MCP registry as
 
 ## Setup
 
-**MCP connector clients (Claude.ai / Desktop / mobile) need no token** — see the OAuth note
-above. For the local stdio server and other clients, you need an AgentDocs API token:
+### Hosted: add the URL and sign in
 
-- **Account token** — agentdocs.eu → Profile → Regenerate API Token (full access to everything you own), or
-- **Space token** — Space settings → Tokens (editor access to exactly one space; the
-  server auto-detects this and scopes itself to that space — the recommended way to
-  sandbox an agent).
+No package to install, nothing to keep updated, and no token to copy. Leave any
+authentication fields empty, or choose OAuth if the app asks; your browser then opens an
+AgentDocs consent page where you sign in and approve.
 
-### Remote (hosted) — nothing to install
+| App | How to add `https://agentdocs.eu/mcp` |
+|---|---|
+| Claude.ai, Claude Desktop, Claude mobile | Settings → Connectors → Add custom connector (leave Advanced settings empty) |
+| ChatGPT | chatgpt.com/plugins → + → Add custom MCP server → Server URL, Authentication: OAuth → Create as a plugin, then install it |
+| Grok Bot | Ask it in chat: "Add this MCP server: https://agentdocs.eu/mcp" |
+| Grok | grok.com/connectors → New Connector → Custom |
+| Claude Code | `claude mcp add --transport http agentdocs https://agentdocs.eu/mcp`, then `claude mcp login agentdocs` |
+| Codex CLI | `codex mcp add agentdocs --url https://agentdocs.eu/mcp`, then `codex mcp login agentdocs` |
+| Gemini CLI | `gemini mcp add --transport http agentdocs https://agentdocs.eu/mcp`, then `/mcp auth agentdocs` |
+| Cursor | `{"mcpServers": {"agentdocs": {"url": "https://agentdocs.eu/mcp"}}}` in `~/.cursor/mcp.json` |
+| VS Code (Copilot) | Command Palette → MCP: Add Server → HTTP → the URL |
+| Zed | `"context_servers": {"agentdocs": {"url": "https://agentdocs.eu/mcp"}}` in `settings.json` |
+| opencode | `opencode mcp add agentdocs --url https://agentdocs.eu/mcp`, then `opencode mcp auth agentdocs` |
+| Devin Desktop (formerly Windsurf) | `devin mcp add agentdocs https://agentdocs.eu/mcp`, then `devin mcp login agentdocs` |
 
-Any client that speaks remote MCP can use the hosted endpoint directly; there's no package
-to install and nothing to keep updated. Same 19 tools as the stdio server.
+These steps follow each vendor's own documentation as of November 2026, and app menus
+change often. Claude, Claude Code and Grok Bot are tested end to end. More detail:
+[agentdocs.eu/docs/agents](https://agentdocs.eu/docs/agents).
+
+### Hosted, with a token
+
+Use a token where sign-in isn't offered or isn't what you want: apps that only take an
+API key or header, scripts and CI, or an agent you want to keep inside one space.
 
 ```
 https://agentdocs.eu/mcp        (Streamable HTTP)
-Authorization: Token <your-token>   # or no header at all — OAuth clients authenticate via the built-in flow
+Authorization: Token <your-token>
 ```
 
 ```bash
@@ -49,20 +68,20 @@ claude mcp add --transport http agentdocs https://agentdocs.eu/mcp \
   --header "Authorization: Token <your-token>"
 ```
 
-**Claude.ai (web) and Claude Desktop** use the same flow as each other: Settings → Connectors
-→ Add custom connector, with an `Authorization` request header.
-
-That request-header field is an Anthropic beta, enabled per-account. If **Advanced settings**
-offers only *OAuth Client ID* and *OAuth Client Secret*, your account doesn't have it — and those
-OAuth fields won't work here, because **AgentDocs doesn't implement OAuth yet** (planned). The
-connector will simply report a connection failure.
-
-In that case use the [Skill](https://agentdocs.eu/agentdocs-skill.md) (Skills → Upload Skill):
-no beta access needed, same REST API, and the reliable path on Claude.ai today.
-
 `Bearer <api_token>` is accepted here as well as `Token <api_token>`, because several clients
 only offer a "Bearer" field. Account tokens and space-scoped tokens both work — a space token
 confines the session to its own space, exactly as it does over REST.
+
+### Local (stdio): this package
+
+The local server always uses an AgentDocs API token:
+
+- **Account token** — agentdocs.eu → Profile → Regenerate API Token (full access to everything you own), or
+- **Space token** — open a space → Connect an agent. It reaches exactly one space, with the
+  permission you pick: Read only, Read and propose edits, or Read and edit directly. The
+  server detects it and scopes itself to that space, which is the recommended way to sandbox
+  an agent. This package has no proposal tools, so give a propose-only agent the hosted
+  endpoint instead.
 
 ### Claude Code (local stdio)
 
@@ -174,10 +193,10 @@ Wrap the command in `cmd /c`:
 
 > **Catalog-based MCP gateways** (e.g. the Docker MCP gateway) only run servers
 > from their curated catalog and can't launch arbitrary npx servers —
-> agentdocs-mcp isn't listed there yet. Use the **hosted remote endpoint**
-> instead: `https://agentdocs.eu/mcp` (Streamable HTTP, same 19 tools, nothing
-> to install) — see [Remote](#remote-hosted--nothing-to-install) above. Failing
-> that, the [REST API](https://agentdocs.eu/llms.txt) has full parity.
+> agentdocs-mcp isn't listed there yet. Use the **hosted endpoint** instead:
+> `https://agentdocs.eu/mcp` (Streamable HTTP, 27 tools, nothing to install) — see
+> [Hosted, with a token](#hosted-with-a-token) above. Failing that, the
+> [REST API](https://agentdocs.eu/llms.txt) has full parity.
 
 ### Configuration
 
@@ -236,8 +255,9 @@ path — `get_page` accepts `"my-workspace/my-space/my-page"`, `create_page` acc
 
 ## Notes
 
-- Every page update creates a version on the server; old versions stay restorable
-  from the AgentDocs UI.
+- Saves are kept in the page's version history on the server and stay restorable
+  from the AgentDocs UI. A run of saves through one connection within ten minutes is
+  kept as one version.
 - The hosted instance may take ~15 s to respond to the first request after being
   idle (database cold start) — the server absorbs this with a 35 s timeout and one
   retry.
