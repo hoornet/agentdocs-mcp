@@ -49,7 +49,7 @@ AgentDocs consent page where you sign in and approve.
 | Devin Desktop (formerly Windsurf) | `devin mcp add agentdocs https://agentdocs.eu/mcp`, then `devin mcp login agentdocs` |
 
 These steps follow each vendor's own documentation as of November 2026, and app menus
-change often. Claude, Claude Code and Grok Bot are tested end to end. More detail:
+change often. Claude, Claude Code, ChatGPT and Grok Bot are tested end to end. More detail:
 [agentdocs.eu/docs/agents](https://agentdocs.eu/docs/agents).
 
 ### Hosted, with a token
