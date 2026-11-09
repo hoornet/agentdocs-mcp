@@ -16,6 +16,8 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
   plus eight collaboration tools), and describes space tokens by their current
   permissions (Read only, Read and propose edits, Read and edit directly).
   README only; no code change.
+- README: ChatGPT is now listed as tested end to end, alongside Claude, Claude
+  Code and Grok Bot.
 
 ## 0.10.5 — 2026-11-04
 
