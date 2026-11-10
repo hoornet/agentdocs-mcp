@@ -137,8 +137,13 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
     },
     safe(async ({ page }: { page: string }) => {
       const pageId = await resolver.pageId(page);
-      const result = await client.request("DELETE", `/api/pages/${pageId}`);
-      return textResult(result);
+      try {
+        const result = await client.request("DELETE", `/api/pages/${pageId}`);
+        return textResult(result);
+      } finally {
+        // The page's path, and its children's, are free for new pages now.
+        resolver.forgetPages();
+      }
     })
   );
 
@@ -182,14 +187,22 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
       // and null means "top level"; send exactly one of those meanings.
       const parentPageId = parent_page ? await resolver.pageId(parent_page) : top_level ? null : undefined;
       const spaceId = space ? await resolver.spaceId(space) : undefined;
-      const result = await client.request<{ page: Page & { space_id: string; parent_page_id: string | null } }>(
-        "PUT",
-        `/api/pages/${pageId}/move`,
-        {
-          ...(parentPageId !== undefined ? { parent_page_id: parentPageId } : {}),
-          ...(spaceId ? { space_id: spaceId } : {}),
-        }
-      );
+      let result: { page: Page & { space_id: string; parent_page_id: string | null } };
+      try {
+        result = await client.request<{ page: Page & { space_id: string; parent_page_id: string | null } }>(
+          "PUT",
+          `/api/pages/${pageId}/move`,
+          {
+            ...(parentPageId !== undefined ? { parent_page_id: parentPageId } : {}),
+            ...(spaceId ? { space_id: spaceId } : {}),
+          }
+        );
+      } finally {
+        // A move to another space gives the page and its children new paths,
+        // and frees the old ones. Cleared even on an error: a timed-out move
+        // may still have happened on the server.
+        resolver.forgetPages();
+      }
       const p = result.page;
       return textResult({
         page: { id: p.id, title: p.title, slug: p.slug, space_id: p.space_id, parent_page_id: p.parent_page_id ?? null },

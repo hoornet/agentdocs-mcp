@@ -180,12 +180,18 @@ export function registerHistoryTools(server: McpServer, ctx: ToolContext): void 
       if (!isUuid(page_id)) {
         throw new Error(`restore_page needs the page's UUID from list_trash; deleted pages can't be found by path (got "${page_id.slice(0, 100)}").`);
       }
-      const result = await client.request<{
-        restored: number;
-        page: PageRow;
-        slug_changed: boolean;
-        reparented_to_root: boolean;
-      }>("POST", `/api/pages/${page_id}/restore`);
+      let result: { restored: number; page: PageRow; slug_changed: boolean; reparented_to_root: boolean };
+      try {
+        result = await client.request<{
+          restored: number;
+          page: PageRow;
+          slug_changed: boolean;
+          reparented_to_root: boolean;
+        }>("POST", `/api/pages/${page_id}/restore`);
+      } finally {
+        // The restored page may take back a path, or come back under a new slug.
+        resolver.forgetPages();
+      }
       const p = result.page;
       return textResult({
         restored: result.restored,

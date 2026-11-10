@@ -19,6 +19,7 @@ const WS = "55555555-5555-4555-8555-555555555555";
 
 function makeCtx({ credential = { type: "account" }, respond = () => ({}) } = {}) {
   const calls = [];
+  let forgotten = 0;
   const ctx = {
     client: {
       baseUrl: "https://agentdocs.eu",
@@ -37,11 +38,12 @@ function makeCtx({ credential = { type: "account" }, respond = () => ({}) } = {}
         return ref === "my-ws/other" ? OTHER_SPACE : ref === "my-ws/docs" ? SPACE : ref;
       },
       async pageId(ref) { return ref === "my-ws/docs/parent" ? PARENT : ref === "my-ws/docs/page" ? PAGE : ref; },
+      forgetPages() { forgotten++; },
     },
     credential,
     capabilities: { localFiles: false },
   };
-  return { ctx, calls };
+  return { ctx, calls, forgotten: () => forgotten };
 }
 
 async function connect(ctx) {
@@ -253,4 +255,27 @@ test("delete_page no longer claims deletion is permanent", async () => {
   const description = tools.find(t => t.name === "delete_page").description;
   assert.doesNotMatch(description, /Permanently|no undo/i);
   assert.match(description, /trash/);
+});
+
+test("move_page, delete_page and restore_page drop cached page paths, even when the call fails", async () => {
+  const cases = [
+    ["move_page", { page: PAGE, top_level: true }],
+    ["delete_page", { page: PAGE }],
+    ["restore_page", { page_id: PAGE }],
+  ];
+  for (const [name, args] of cases) {
+    const ok = makeCtx({ respond: () => ({ page: { id: PAGE, title: "T", slug: "t" }, restored: 1 }) });
+    await call(ok.ctx, name, args);
+    assert.equal(ok.forgotten(), 1, `${name} should forget page paths`);
+
+    const failing = makeCtx({ respond: () => { throw new Error("timed out"); } });
+    const { result } = await call(failing.ctx, name, args);
+    assert.equal(result.isError, true);
+    assert.equal(failing.forgotten(), 1, `${name} should forget page paths after an error too`);
+  }
+
+  // Reads leave the cache alone.
+  const read = makeCtx({ respond: () => ({ versions: [] }) });
+  await call(read.ctx, "list_page_versions", { page: PAGE });
+  assert.equal(read.forgotten(), 0);
 });

@@ -31,6 +31,11 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
   pages to the trash, and `restore_page` can bring them back.
 - `update_page` points to the page history tools instead of saying every
   update creates a new version (saves within ten minutes are kept as one).
+- `move_page`, `delete_page` and `restore_page` clear the cached page paths, so
+  a long-running local session looks a path up again after it may have
+  changed. Before, a path cached before a delete kept pointing at the trashed
+  page; with moves, an old path could have reached the moved page even after a
+  new page took that path.
 - **README: setup leads with the hosted endpoint and OAuth sign-in.** Most apps
   (Claude, ChatGPT, Grok, Grok Bot, Cursor, VS Code, Claude Code, Codex, Gemini
   CLI, Zed, opencode, Devin Desktop) now connect to `https://agentdocs.eu/mcp`

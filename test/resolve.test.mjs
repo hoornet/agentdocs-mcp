@@ -68,3 +68,24 @@ test("a large slash run does not blow up (ReDoS regression)", async () => {
   const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
   assert.ok(elapsedMs < 2000, `took ${elapsedMs.toFixed(0)}ms — trimming is not linear`);
 });
+
+test("forgetPages drops cached page paths and keeps workspace and space entries", async () => {
+  const client = stubClient({ workspace: { id: UUID }, space: { id: UUID }, page: { id: UUID } });
+  const resolver = new Resolver(client, true);
+  await resolver.workspaceId("ws");
+  await resolver.spaceId("ws/space");
+  await resolver.pageId("ws/space/page");
+  assert.equal(client.calls.length, 3);
+
+  // Cached: no new lookups.
+  await resolver.pageId("ws/space/page");
+  assert.equal(client.calls.length, 3);
+
+  resolver.forgetPages();
+  await resolver.workspaceId("ws");
+  await resolver.spaceId("ws/space");
+  assert.equal(client.calls.length, 3, "workspace and space entries survive");
+  await resolver.pageId("ws/space/page");
+  assert.equal(client.calls.length, 4, "the page path is looked up again");
+  assert.equal(client.calls[3].path, "/api/resolve/ws/space/page");
+});
