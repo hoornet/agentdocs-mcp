@@ -100,6 +100,21 @@ export class Resolver {
     return this.resolve(path, "page");
   }
 
+  /**
+   * Drop every cached page path. Call after anything that changes which page a
+   * path names: a move to another space (the page and its children get new
+   * paths, and the old ones are free for new pages), a delete (the path is
+   * freed) or a restore (the page may come back under a new slug). Without it,
+   * a long-lived stdio session keeps sending an old path to the page that used
+   * to live there, so an edit or delete could land on the wrong page.
+   * Workspace and space entries are unaffected by page changes and stay.
+   */
+  forgetPages(): void {
+    for (const key of [...this.cache.keys()]) {
+      if (key.startsWith("page:")) this.cache.delete(key);
+    }
+  }
+
   private async resolve(path: string, kind: "workspace" | "space" | "page"): Promise<string> {
     const cacheKey = `${kind}:${path}`;
     const cached = this.cache.get(cacheKey);

@@ -55,7 +55,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Update page",
       description:
-        "Update a page's title and/or content. Every update creates a new version (old versions stay restorable). Pass expected_version to fail instead of overwriting concurrent edits.",
+        "Update a page's title and/or content. Earlier text stays in the page history (list_page_versions) and can be brought back with restore_page_version. Pass expected_version to fail instead of overwriting concurrent edits.",
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
         title: z.string().optional().describe("New title"),
@@ -129,7 +129,7 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
     {
       title: "Delete page",
       description:
-        "Permanently delete a page. WARNING: deletion cascades to all child pages. There is no undo via the API.",
+        "Delete a page and all its child pages by moving them to the trash. They can be brought back with restore_page (find the id with list_trash) until the trash retention period ends, after which they are deleted for good.",
       inputSchema: {
         page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path'),
       },
@@ -137,8 +137,76 @@ export function registerWriteTools(server: McpServer, ctx: ToolContext): void {
     },
     safe(async ({ page }: { page: string }) => {
       const pageId = await resolver.pageId(page);
-      const result = await client.request("DELETE", `/api/pages/${pageId}`);
-      return textResult(result);
+      try {
+        const result = await client.request("DELETE", `/api/pages/${pageId}`);
+        return textResult(result);
+      } finally {
+        // The page's path, and its children's, are free for new pages now.
+        resolver.forgetPages();
+      }
+    })
+  );
+
+  server.registerTool(
+    "move_page",
+    {
+      title: "Move page",
+      description:
+        "Move a page, with its child pages, under another page or to the top level of its space. Give parent_page to nest it, or top_level: true to put it at the top. To move it into another space of the same workspace, also give space; the new parent must then be in that space (or use top_level). Space-scoped tokens can only move pages within their own space.",
+      inputSchema: {
+        page: z.string().describe('Page UUID or "workspaceSlug/spaceSlug/pageSlug" path of the page to move'),
+        parent_page: z
+          .string()
+          .optional()
+          .describe('New parent page: UUID or "workspaceSlug/spaceSlug/pageSlug" path. Leave out with top_level: true.'),
+        top_level: z
+          .boolean()
+          .optional()
+          .describe("When true, move the page to the top level of its space (no parent). Don't combine with parent_page."),
+        space: z
+          .string()
+          .optional()
+          .describe('Destination space, only when moving to another space: UUID or "workspaceSlug/spaceSlug" path. Same workspace only.'),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    safe(async ({ page, parent_page, top_level, space }: {
+      page: string;
+      parent_page?: string;
+      top_level?: boolean;
+      space?: string;
+    }) => {
+      if (parent_page && top_level) {
+        throw new Error("Give either parent_page or top_level: true, not both.");
+      }
+      if (!parent_page && !top_level && !space) {
+        throw new Error("Nothing to move to: give parent_page, top_level: true, or space.");
+      }
+      const pageId = await resolver.pageId(page);
+      // An omitted parent_page_id means "keep the current parent" to the API,
+      // and null means "top level"; send exactly one of those meanings.
+      const parentPageId = parent_page ? await resolver.pageId(parent_page) : top_level ? null : undefined;
+      const spaceId = space ? await resolver.spaceId(space) : undefined;
+      let result: { page: Page & { space_id: string; parent_page_id: string | null } };
+      try {
+        result = await client.request<{ page: Page & { space_id: string; parent_page_id: string | null } }>(
+          "PUT",
+          `/api/pages/${pageId}/move`,
+          {
+            ...(parentPageId !== undefined ? { parent_page_id: parentPageId } : {}),
+            ...(spaceId ? { space_id: spaceId } : {}),
+          }
+        );
+      } finally {
+        // A move to another space gives the page and its children new paths,
+        // and frees the old ones. Cleared even on an error: a timed-out move
+        // may still have happened on the server.
+        resolver.forgetPages();
+      }
+      const p = result.page;
+      return textResult({
+        page: { id: p.id, title: p.title, slug: p.slug, space_id: p.space_id, parent_page_id: p.parent_page_id ?? null },
+      });
     })
   );
 

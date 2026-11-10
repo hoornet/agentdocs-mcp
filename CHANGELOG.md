@@ -4,16 +4,45 @@ All notable changes to `agentdocs-mcp` are documented here. Versions follow
 [semver](https://semver.org/); the package is the stdio MCP server for
 [AgentDocs](https://agentdocs.eu).
 
-## Unreleased
+## 0.11.0 — 2026-11-10
+
+### Added
+- **Page history tools.** `list_page_versions` lists a page's saved versions,
+  newest first, with the date, the author, which app made each edit
+  (`edited_via`, `token_name`) and the text length. It leaves the text out,
+  because the REST route returns every version in full; `limit` (default 50,
+  max 200) caps the list. `get_page_version` returns one version's text, and
+  `restore_page_version` brings it back. The restore is a new version, and the
+  text it replaces stays in the history.
+- **`move_page`** moves a page and its children under another page
+  (`parent_page`), to the top level of its space (`top_level: true`), or into
+  another space of the same workspace (`space`). The server enforces the
+  same-workspace rule, and space-scoped tokens stay inside their own space.
+- **Trash tools.** `list_trash` lists the deleted pages in a space that can
+  still be restored, with how many child pages went with each and how long the
+  trash keeps them. `restore_page` brings one back by UUID (deleted pages can't
+  be found by path) and reports a changed slug or a move to the top level.
+- **`search_docs` and `semantic_search` take an optional `space`** to search one
+  space of the workspace instead of all of it. The REST API already supported
+  this.
 
 ### Changed
+- `delete_page` no longer says deletion is permanent. AgentDocs moves deleted
+  pages to the trash, and `restore_page` can bring them back.
+- `update_page` points to the page history tools instead of saying every
+  update creates a new version (saves within ten minutes are kept as one).
+- `move_page`, `delete_page` and `restore_page` clear the cached page paths, so
+  a long-running local session looks a path up again after it may have
+  changed. Before, a path cached before a delete kept pointing at the trashed
+  page; with moves, an old path could have reached the moved page even after a
+  new page took that path.
 - **README: setup leads with the hosted endpoint and OAuth sign-in.** Most apps
   (Claude, ChatGPT, Grok, Grok Bot, Cursor, VS Code, Claude Code, Codex, Gemini
   CLI, Zed, opencode, Devin Desktop) now connect to `https://agentdocs.eu/mcp`
   with no token: add the URL and sign in. The README gives the steps for each,
   then the token route, then this stdio package. It no longer says AgentDocs
-  lacks OAuth, gives the hosted endpoint its real tool count (27, the 19 here
-  plus eight collaboration tools), and describes space tokens by their current
+  lacks OAuth, gives the hosted endpoint its real tool count (33 with this
+  release: the 25 here plus eight collaboration tools), and describes space tokens by their current
   permissions (Read only, Read and propose edits, Read and edit directly).
   README only; no code change.
 - README: ChatGPT and Grok are now listed as tested end to end, alongside
