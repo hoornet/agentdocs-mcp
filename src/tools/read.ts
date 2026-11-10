@@ -120,6 +120,11 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
     })
   );
 
+  const searchSpace = z
+    .string()
+    .optional()
+    .describe('Only search this space of the workspace: space UUID or "workspaceSlug/spaceSlug" path. Leave out to search every space you can read.');
+
   // Workspace-scoped tools are unavailable to space tokens (they 403); hide
   // them so the client model never sees tools it cannot call.
   if (credential.type !== "space") {
@@ -159,16 +164,21 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
       {
         title: "Search docs",
         description:
-          "Full-text (keyword) search across all pages in a workspace. Matches in the returned content_preview are delimited with << >> markers. For natural-language questions, prefer semantic_search.",
+          "Full-text (keyword) search across the pages in a workspace, or in one of its spaces. Matches in the returned content_preview are delimited with << >> markers. For natural-language questions, prefer semantic_search.",
         inputSchema: {
           workspace: z.string().describe("Workspace UUID or workspace slug"),
           query: z.string().min(1).describe("Search terms"),
+          space: searchSpace,
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      safe(async ({ workspace, query }: { workspace: string; query: string }) => {
+      safe(async ({ workspace, query, space }: { workspace: string; query: string; space?: string }) => {
         const workspaceId = await resolver.workspaceId(workspace);
-        const result = await client.request("GET", `/api/workspaces/${workspaceId}/search`, undefined, { q: query });
+        const spaceId = space ? await resolver.spaceId(space) : undefined;
+        const result = await client.request("GET", `/api/workspaces/${workspaceId}/search`, undefined, {
+          q: query,
+          ...(spaceId ? { spaceId } : {}),
+        });
         return textResult(result);
       })
     );
@@ -182,14 +192,17 @@ export function registerReadTools(server: McpServer, ctx: ToolContext): void {
         inputSchema: {
           workspace: z.string().describe("Workspace UUID or workspace slug"),
           query: z.string().min(1).max(1000).describe("A natural-language question or description (max 1000 chars)"),
+          space: searchSpace,
         },
         annotations: { readOnlyHint: true, openWorldHint: false },
       },
-      safe(async ({ workspace, query }: { workspace: string; query: string }) => {
+      safe(async ({ workspace, query, space }: { workspace: string; query: string; space?: string }) => {
         const workspaceId = await resolver.workspaceId(workspace);
+        const spaceId = space ? await resolver.spaceId(space) : undefined;
         const result = await client.request("GET", `/api/workspaces/${workspaceId}/search`, undefined, {
           q: query,
           mode: "semantic",
+          ...(spaceId ? { spaceId } : {}),
         });
         return textResult(result);
       })

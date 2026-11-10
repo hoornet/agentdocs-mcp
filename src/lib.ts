@@ -14,6 +14,7 @@ import { registerWriteTools } from "./tools/write.js";
 import { registerShareTools } from "./tools/share.js";
 import { registerCommentTools } from "./tools/comments.js";
 import { registerMediaTools } from "./tools/media.js";
+import { registerHistoryTools } from "./tools/history.js";
 
 export { AgentDocsClient, ApiError } from "./client.js";
 export { Resolver, isUuid } from "./resolve.js";
@@ -27,6 +28,7 @@ export function registerAllTools(server: McpServer, ctx: ToolContext): void {
   registerShareTools(server, ctx);
   registerCommentTools(server, ctx);
   registerMediaTools(server, ctx);
+  registerHistoryTools(server, ctx);
 }
 
 /**

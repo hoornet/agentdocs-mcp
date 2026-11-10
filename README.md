@@ -17,7 +17,7 @@ create, update, and share AgentDocs pages.
 > Claude Desktop, Claude mobile, ChatGPT, Grok, Grok Bot, Cursor, VS Code, Claude Code,
 > Codex, Gemini CLI, Zed, opencode and Devin Desktop. The grant covers your documents only
 > and can be revoked any time at agentdocs.eu → Settings → Connected apps. The hosted
-> endpoint has 27 tools: the 19 [below](#tools) plus eight for proposed changes, context
+> endpoint has 33 tools: the 25 [below](#tools) plus eight for proposed changes, context
 > collections and page review. Steps for each app are under
 > [Setup](#hosted-add-the-url-and-sign-in).
 
@@ -194,7 +194,7 @@ Wrap the command in `cmd /c`:
 > **Catalog-based MCP gateways** (e.g. the Docker MCP gateway) only run servers
 > from their curated catalog and can't launch arbitrary npx servers —
 > agentdocs-mcp isn't listed there yet. Use the **hosted endpoint** instead:
-> `https://agentdocs.eu/mcp` (Streamable HTTP, 27 tools, nothing to install) — see
+> `https://agentdocs.eu/mcp` (Streamable HTTP, 33 tools, nothing to install) — see
 > [Hosted, with a token](#hosted-with-a-token) above. Failing that, the
 > [REST API](https://agentdocs.eu/llms.txt) has full parity.
 
@@ -226,15 +226,21 @@ npx -y agentdocs-mcp@latest    # or: npm cache clean --force
 | `list_workspaces` | List accessible workspaces ¹ |
 | `list_spaces` | List spaces in a workspace ¹ |
 | `list_pages` | Page tree of a space (without content) |
-| `search_docs` | Full-text (keyword) search across a workspace ¹ |
-| `semantic_search` | Natural-language search ranked by meaning — Pro workspaces ¹ |
+| `search_docs` | Full-text (keyword) search across a workspace, or one `space` in it ¹ |
+| `semantic_search` | Natural-language search ranked by meaning, optionally in one `space` — Pro workspaces ¹ |
 | `get_page` | Read a page (full Markdown + version); optional `include_comments` / `include_children` / `include_images` (returns embedded images as viewable image blocks) |
 | `create_page` | Create a Markdown page (nestable) |
 | `update_page` | Update title/content, with optional optimistic version check |
 | `append_to_page` | Append Markdown — ideal for logs and session reports |
 | `import_markdown` | Import a folder of Markdown files; paths become the page hierarchy. **Idempotent** — re-import reuses by source path (no duplicates); `parent_page` anchor + `overwrite_existing` re-sync |
-| `delete_page` | Delete a page (cascades to children) |
+| `delete_page` | Move a page and its child pages to the trash |
+| `move_page` | Move a page (and its children) under another page, to the top level, or to another space in the same workspace |
 | `bulk_create_pages` | Create up to 500 pages atomically with explicit structure |
+| `list_trash` | Deleted pages in a space that can still be restored |
+| `restore_page` | Bring a deleted page (and the children deleted with it) back, by UUID from `list_trash` |
+| `list_page_versions` | A page's history: version, date, author, which app made each edit, text length (no text) |
+| `get_page_version` | The full text of one earlier version |
+| `restore_page_version` | Restore an earlier version's text; the replaced text stays in the history |
 | `share_page` | Create a public magic link (web + raw-Markdown URLs) |
 | `list_comments` | List a page's threaded comments (ids, authors, parents) |
 | `add_comment` | Post a comment / threaded reply (with `@mentions`) |
@@ -255,9 +261,10 @@ path — `get_page` accepts `"my-workspace/my-space/my-page"`, `create_page` acc
 
 ## Notes
 
-- Saves are kept in the page's version history on the server and stay restorable
-  from the AgentDocs UI. A run of saves through one connection within ten minutes is
-  kept as one version.
+- Saves are kept in the page's version history on the server. Read it with
+  `list_page_versions` and `get_page_version`, and bring old text back with
+  `restore_page_version` (or from the AgentDocs UI). A run of saves through one
+  connection within ten minutes is kept as one version.
 - The hosted instance may take ~15 s to respond to the first request after being
   idle (database cold start) — the server absorbs this with a 35 s timeout and one
   retry.

@@ -104,8 +104,8 @@ Use the reusable copy below.
 - **Name:** AgentDocs MCP
 - **Package:** `agentdocs-mcp` (npm) · **Repo:** github.com/hoornet/agentdocs-mcp · **License:** MIT
 - **Tagline:** Give your AI agent read/write access to collaborative docs — agents as first-class citizens.
-- **Description:** MCP server for AgentDocs (agentdocs.eu): 19 tools to read, search (full-text +
-  pgvector semantic), create, update, comment on, and share Markdown docs — plus attach and view
+- **Description:** MCP server for AgentDocs (agentdocs.eu): 25 tools to read, search (full-text +
+  pgvector semantic), create, update, move, restore, comment on, and share Markdown docs — plus attach and view
   images, so an agent can file a screenshot into the page it is writing and a later reader can
   actually see it. Slug-or-UUID addressing;
   account or space-scoped tokens (sandbox an agent to one space). Also available as a **hosted remote
