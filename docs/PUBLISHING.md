@@ -66,23 +66,27 @@ Listed as **`io.github.hoornet/agentdocs-mcp`** via `server.json` (in repo root)
   it reads `server.json` and authenticates via **GitHub OAuth** to prove the `io.github.hoornet`
   namespace. (Maintainer step — needs the GitHub login.)
 - On each new npm release, bump `version` in `server.json` to match and re-run `mcp-publisher`.
+- The saved registry login expires. If `mcp-publisher publish` answers `401 ... token is
+  expired`, run `mcp-publisher login github` (a device-code flow: open
+  `https://github.com/login/device`, enter the printed code as **hoornet**) and publish again.
+  Run it in a real terminal, since it waits for the browser. `mcp-publisher validate` checks
+  `server.json` against the registry without logging in.
 
-## Glama (`glama.ai/mcp/servers/@hoornet/agentdocs-mcp`, claimed)
-Glama builds the repo itself (Dockerfile in Admin → Dockerfile) and keeps **its own release
-numbering**. Two things learned the hard way (2026-09-06 → 08):
+## Glama (`glama.ai/mcp/servers/hoornet/agentdocs-mcp`, claimed)
+Glama builds the repo itself (Dockerfile in Admin → Dockerfile) and lists its own releases.
 
-- **"Make Release" auto-increments from Glama's *previous* release, not from `package.json`,
-  and releases can neither be renamed nor deleted — only a higher number is offered.** On
-  2026-08-22 that produced Glama releases 0.10.1 *and* 0.10.2 in one sitting, so when the real
-  0.10.2 (`d97d33b`) was built on 2026-09-08 the only option was **0.10.3**. Glama is therefore
-  one patch ahead of npm.
-- **Realigned with 0.10.4 (npm, 2026-10-09; 0.10.3 was skipped for this reason) — and that
-  release appeared on Glama by itself.** After the v0.10.4 tag + GitHub release were pushed, the
-  admin Releases page already showed a 0.10.4 build and release with no "Make Release" click
-  (observed by Jure, 2026-10-10). So the current procedure is: push the tag and GitHub release,
-  then **check** the admin Releases page before touching "Make Release" — clicking it when a
-  release already exists is exactly how the numbering drifted in August. Only make one by hand
-  if the automatic one is missing after the build has passed.
+- **Nothing to do per release.** Admin → Releases has an **Auto-Release** switch ("Builds and
+  publishes a new version on every GitHub release"), and it is on. Pushing the tag and the
+  GitHub release is the whole procedure: 0.11.0 appeared on Glama by itself, numbered to match
+  npm, with the GitHub release notes. The manual "Make Release" button is gone. Just check that
+  the new version shows as Latest once its build test passes.
+- **Glama releases can neither be renamed nor deleted.** That is why its numbers ran ahead of
+  npm during 0.10.x. In 2026-08 the old "Make Release" button auto-incremented from Glama's
+  previous release, which produced Glama 0.10.1 *and* 0.10.2 in one sitting; the real 0.10.2
+  (`d97d33b`) then became Glama 0.10.3. Glama's 0.10.4 is dated 2026-09-09, a month before npm's
+  0.10.4, so the 0.10.4 seen there on 2026-10-10 was that older entry, not a realignment. npm
+  0.10.4 and 0.10.5 most likely became Glama 0.10.5 (2026-10-16) and 0.10.6 (2026-11-05); npm
+  never had a 0.10.6. The minor bump to 0.11.0 put the two back in step.
 - `glama.json` in the repo root (schema: only `maintainers`, GitHub usernames) is what lets
   Glama tie the listing to the account; it is outside the npm `files` allowlist, so it never
   ships in the tarball. Keep it when restructuring.
